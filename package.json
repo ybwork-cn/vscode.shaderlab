@@ -1,0 +1,81 @@
+{
+    "name": "ybwork-shaderlab",
+    "displayName": "Beautify ShaderLab",
+    "description": "ShaderLab高亮格式化插件",
+    "version": "0.9.3",
+    "publisher": "ybwork",
+    "author": "ybwork",
+    "icon": "shaderlab.png",
+    "keywords": [
+        "vscode",
+        "plugin",
+        "format",
+        "shaderlab",
+        "unity"
+    ],
+    "engines": {
+        "vscode": "^1.58.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Formatters"
+    ],
+    "activationEvents": [
+        "onLanguage:shaderlab",
+        "onLanguage:hlsl"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "commands": [],
+        "menus": {
+            "editor/context": []
+        },
+        "keybindings": [],
+        "languages": [
+            {
+                "id": "ShaderLab",
+                "extensions": [
+                    ".shader"
+                ]
+            },
+            {
+                "id": "HLSL",
+                "extensions": [
+                    ".cginc"
+                ]
+            }
+        ],
+        "grammars": [
+            {
+                "language": "ShaderLab",
+                "scopeName": "source.shaderlab",
+                "path": "./syntaxes/shaderlab.tmLanguage.json"
+            }
+        ],
+        "configuration": [
+            {
+                "title": "Beautify ShaderLab",
+                "properties": {
+                    "Unity CGIncludes Path": {
+                        "type": "string",
+                        "description": "Unity的CGIncludes文件夹路径"
+                    }
+                }
+            }
+        ]
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "pretest": "npm run lint",
+        "tsc": "tsc"
+    },
+    "devDependencies": {
+        "@types/node": "^20.4.5",
+        "@types/vscode": "^1.84.1",
+        "typescript": "^5.1.3",
+        "@typescript-eslint/eslint-plugin": "latest",
+        "@typescript-eslint/parser": "latest",
+        "eslint": "latest"
+    },
+    "dependencies": {}
+}
