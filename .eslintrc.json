@@ -1,0 +1,57 @@
+{
+    "env": {
+		"es6": true,
+        "node": true
+	},
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaVersion": "latest",
+		"ecmaFeatures": {
+			"jsx": true
+		},
+        "sourceType": "module"
+    },
+    "plugins": [
+        "@typescript-eslint"
+    ],
+	"rules": {
+		"no-const-assign": "warn",
+        "no-this-before-super": "warn",
+		"no-unreachable": "warn",
+        //未使用的参数不提示
+        //未使用的变量警告
+        "no-unused-vars": [
+            "warn",
+            {
+                "vars": "all",
+                "args": "none"
+            }
+        ],
+		"constructor-super": "warn",
+        "valid-typeof": "warn",
+        // 缩进：强行4空格
+        "indent": [
+            "error",
+            4,
+            {
+                // case的缩进：额外加一
+                "SwitchCase": 1
+            }
+        ],
+        // 换行符：强行\r\n
+        "linebreak-style": [
+            "error",
+            "windows"
+        ],
+        // 圈复杂度：不超过15
+        "complexity": [
+            "error",
+            15
+        ],
+        // 分号：必须有分号
+        "semi": [
+            "error",
+            "always"
+        ]
+	}
+}

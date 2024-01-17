@@ -1,0 +1,28 @@
+stages:
+  - build
+
+variables:
+  GIT_STRATEGY: fetch
+
+build_job:
+  stage: build
+  tags:
+    - centos
+  # 匹配tag，规则
+  # 1.0.0
+  # 1.0.0-abc
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^\d+\.\d+\.\d+(-.*)?$/'
+  variables:
+  before_script:
+    - npm install -g vsce
+  script:
+    # 定义package.json的文件路径
+    - jsonFilePath="./package.json"
+    # 修改版本号
+    - jq --arg version "$CI_COMMIT_TAG" '.version = $version' "$jsonFilePath" > tmp.json && mv tmp.json "$jsonFilePath"
+    # 打包
+    - vsce package
+  artifacts:
+    paths:
+      - '*.vsix'

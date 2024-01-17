@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "target": "ES2022",
+        "outDir": "./dist", // 输出目录
+        "inlineSourceMap": true,
+        "inlineSources": true,
+        "strict": false,
+        "types": [
+            "node"
+        ]
+    },
+    "include": [
+        "scripts/*.ts"
+    ]
+}
