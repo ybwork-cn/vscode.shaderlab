@@ -6,7 +6,7 @@ function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.Doc
     const text = getDocumentText(document, rangeIndex);
     let match: RegExpExecArray;
 
-    let regex_para = /(?<!\/\/.*)(\w+)\s+(\w+(?:\[\d+\])?)\s*=/g;
+    let regex_para = /(?<!\/\/.*)(\w+)\s+(\w+(?:\[\d*\])?)\s*=/g;
     while ((match = regex_para.exec(text))) {
         const startPosition = document.positionAt(match.index + rangeIndex.start);
         let _exit = false;
