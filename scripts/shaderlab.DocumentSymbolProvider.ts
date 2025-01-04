@@ -81,7 +81,7 @@ function SemanticTokens_params(document: vscode.TextDocument, root: vscode.Docum
     const text = getDocumentText(document, rangeIndex);
     let match: RegExpExecArray;
 
-    const regex_para = /(\w+)\s+(\w+)$/mg;
+    const regex_para = /(\w+)\s+(\w+)/mg;
     while ((match = regex_para.exec(text))) {
         const selectionRange = new vscode.Range(
             document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2], match[1].length)),
