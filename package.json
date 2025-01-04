@@ -2,7 +2,7 @@
     "name": "ybwork-shaderlab",
     "displayName": "Beautify ShaderLab",
     "description": "ShaderLab高亮格式化插件",
-    "version": "0.9.4",
+    "version": "0.9.5",
     "publisher": "ybwork",
     "author": "ybwork",
     "icon": "shaderlab.png",
@@ -68,8 +68,6 @@
         ]
     },
     "scripts": {
-        "lint": "eslint .",
-        "pretest": "npm run lint",
         "tsc": "tsc"
     },
     "devDependencies": {
