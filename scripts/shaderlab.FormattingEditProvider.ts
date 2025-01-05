@@ -155,7 +155,7 @@ function ResetTabs(text: string, tabSize: number) {
         let curTabLevel = tabLevel;
         if (i > 0 && !isBlockStart) {
             // 紧跟if/else的单语句自动缩进
-            if (/\s*if|else\b/.test(lines[i - 1]))
+            if (/^\s*if|else\b/.test(lines[i - 1]))
                 curTabLevel++;
             // 分三行写的三元表达式，后两行自动缩进
             if (/^[\?\:]/.test(lines[i]))
@@ -176,8 +176,8 @@ function ResetTabs(text: string, tabSize: number) {
     // 去除文件末尾的多个换行
     text = text.replaceAll(/(\r?\n){3,}/g, '\n\n'),
 
-    // 去除文件末尾的多个换行
-    text = $.replace(text, /\n+$/, () => '\n');
+        // 去除文件末尾的多个换行
+        text = $.replace(text, /\n+$/, () => '\n');
 
     return text;
 }
