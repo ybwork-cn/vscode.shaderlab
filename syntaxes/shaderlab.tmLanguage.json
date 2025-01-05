@@ -6,6 +6,9 @@
             "include": "#comments"
         },
         {
+            "include": "#functionDefine"
+        },
+        {
             "include": "#strings"
         },
         {
@@ -149,6 +152,58 @@
                 }
             ]
         },
+        "paramsDefine": {
+            "match": "(\\w+)\\s+(\\w+)",
+            "captures": {
+                "1": {
+                    "patterns": [
+                        {
+                            "match": "\\b(fixed|float|int|half)([1-4](x[1-4])?)?\\b",
+                            "name": "storage.type.basic.shaderlab"
+                        },
+                        {
+                            "name": "entity.name.type.struct.shaderlab",
+                            "match": ".*"
+                        }
+                    ]
+                },
+                "2": {
+                    "name": "support.variable.shaderlab"
+                }
+            }
+        },
+        "functionDefine": {
+            "注释": "函数定义",
+            "match": "(\\w+)\\s+(\\w+)\\s*\\((.*?)\\)(?:\\s*:\\s*(\\w+))?\\s*",
+            "captures": {
+                "1": {
+                    "patterns": [
+                        {
+                            "match": "\\b(fixed|float|int|half)([1-4](x[1-4])?)?\\b",
+                            "name": "storage.type.basic.shaderlab"
+                        },
+                        {
+                            "name": "entity.name.type.struct.shaderlab",
+                            "match": ".*"
+                        }
+                    ]
+                },
+                "2": {
+                    "name": "support.function.shaderlab"
+                },
+                "3": {
+                    "patterns": [
+                        {
+                            "include": "#paramsDefine"
+                        }
+                    ]
+                },
+                "4": {
+                    "name": "constant.language.shaderlab",
+                    "match": "POSITION|SV_POSITION|NORMAL|SV_TARGET|TEXCOORD[0-9]"
+                }
+            }
+        },
         "hlsl-embedded": {
             "patterns": [
                 {
@@ -229,29 +284,7 @@
                     ]
                 },
                 {
-                    "注释": "函数定义",
-                    "match": "(\\w+)\\s+(\\w+)\\s*\\(.*?\\)(?:\\s*:\\s*(\\w+))?\\s*",
-                    "captures": {
-                        "1": {
-                            "patterns": [
-                                {
-                                    "match": "\\b(fixed|float|int|half)([1-4](x[1-4])?)?\\b",
-                                    "name": "storage.type.basic.shaderlab"
-                                },
-                                {
-                                    "name": "entity.name.type.struct.shaderlab",
-                                    "match": ".*"
-                                }
-                            ]
-                        },
-                        "2": {
-                            "name": "support.function.shaderlab"
-                        },
-                        "3": {
-                            "name": "constant.language.shaderlab",
-                            "match": "POSITION|SV_POSITION|NORMAL|SV_TARGET|TEXCOORD[0-9]"
-                        }
-                    }
+                    "include": "#functionDefine"
                 },
                 {
                     "注释": "函数调用",

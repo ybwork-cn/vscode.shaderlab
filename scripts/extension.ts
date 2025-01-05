@@ -6,6 +6,7 @@ import { SemanticTokensProvider, tokenLegend } from './shaderlab.SemanticTokensP
 import { provideDocumentFormattingEdits } from './shaderlab.FormattingEditProvider.js';
 import { provideDefinition } from './shaderlab.DefinitionProvider.js';
 import { provideDocumentSymbols } from './shaderlab.DocumentSymbolProvider.js';
+import { provideHover } from './shaderlab.HoverProvider.js';
 import * as $ from './$.js';
 
 function activate(context: vscode.ExtensionContext) {
@@ -36,6 +37,10 @@ function activate(context: vscode.ExtensionContext) {
         { provideDocumentSymbols }
     );
 
+    const hoverProvider = vscode.languages.registerHoverProvider('shaderlab',
+        { provideHover }
+    );
+
     // 转到定义工具
     const definitionProvider = vscode.languages.registerDefinitionProvider('shaderlab',
         { provideDefinition }
@@ -45,6 +50,7 @@ function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(documentSemanticTokensProvider);
     context.subscriptions.push(completionItemProvider);
     context.subscriptions.push(documentSymbolProvider);
+    context.subscriptions.push(hoverProvider);
     context.subscriptions.push(definitionProvider);
     hlsl.activate(context);
 }
