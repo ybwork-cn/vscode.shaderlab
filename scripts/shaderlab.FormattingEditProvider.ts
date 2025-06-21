@@ -19,20 +19,21 @@ function provideDocumentFormattingEdits(document: vscode.TextDocument, options: 
     let text = document.getText();
     // 不匹配"//"后面的，匹配"{"但不匹配其后紧跟"{"或者换行的情况
     // 在每个独立的"{"后面加一个换行符
+    text = $.replace(text, /\r\n/g, v => '\n');
     text = $.replace(text, /(?<!\/\/.*)({\s*})/gm, (v, v1) => v.replace(v1, '{}'));
-    text = $.replace(text, /(?<!\/\/.*)({)(?![}\r\n])/gm, (v, v1) => v.replace(v1, '{\r\n'));
+    text = $.replace(text, /(?<!\/\/.*)({)(?![}\r\n])/gm, (v, v1) => v.replace(v1, '{\n'));
     text = $.replace(text, /^\s*?\b(?<!\/\/.*)(.*)}/gm, (v, v1) => {
         if (v1.length == 0)
             return v;
         if (v1.endsWith('{'))
             return v;
-        return v.substring(0, v.length - 1) + '\r\n}';
+        return v.substring(0, v.length - 1) + '\n}';
     });
-    const lines = text.split('\r\n');
+    const lines = text.split('\n');
     for (let index = 0; index < lines.length; index++) {
         lines[index] = formatLine(lines[index]);
     }
-    text = lines.join('\r\n');
+    text = lines.join('\n');
     text = ResetTabs(text, options.tabSize);
 
     const edit = new vscode.TextEdit(fullRange, text);
