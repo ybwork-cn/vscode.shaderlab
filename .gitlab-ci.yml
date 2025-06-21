@@ -15,14 +15,15 @@ build_job:
     - if: '$CI_COMMIT_TAG =~ /^\d+\.\d+\.\d+(-.*)?$/'
   variables:
   before_script:
-    - npm install -g vsce
+    - npm config set registry https://registry.npmjs.org/
+    - npm install
   script:
     # 定义package.json的文件路径
     - jsonFilePath="./package.json"
     # 修改版本号
     - jq --arg version "$CI_COMMIT_TAG" '.version = $version' "$jsonFilePath" > tmp.json && mv tmp.json "$jsonFilePath"
     # 打包
-    - vsce package
+    - npm run build
   artifacts:
     paths:
       - '*.vsix'
