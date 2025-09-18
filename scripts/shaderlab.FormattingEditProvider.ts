@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import * as $ from './$.js';
 
@@ -17,18 +16,18 @@ function provideDocumentFormattingEdits(document: vscode.TextDocument, options: 
     );
 
     let text = document.getText();
-    // 不匹配"//"后面的，匹配"{"但不匹配其后紧跟"{"或者换行的情况
-    // 在每个独立的"{"后面加一个换行符
+    // 去除每一行的首尾不可见字符
+    text = trimLines(text);
+    // 统一换行符为\n，防止不同系统间的换行符不一致导致的问题
     text = $.replace(text, /\r\n/g, v => '\n');
+    text = $.replace(text, /(?<!\/\/.*)(;).+/gm, (v, v1) => v.replace(v1, ';\n'));
+
     text = $.replace(text, /(?<!\/\/.*)({\s*})/gm, (v, v1) => v.replace(v1, '{}'));
-    text = $.replace(text, /(?<!\/\/.*)({)(?![}\r\n])/gm, (v, v1) => v.replace(v1, '{\n'));
-    text = $.replace(text, /^\s*?\b(?<!\/\/.*)(.*)}/gm, (v, v1) => {
-        if (v1.length == 0)
-            return v;
-        if (v1.endsWith('{'))
-            return v;
-        return v.substring(0, v.length - 1) + '\n}';
-    });
+    text = $.replace(text, /(?<!\/\/.*).+({)(?!})/gm, (v, v1) => v.replace(v1, '\n{'));
+    text = $.replace(text, /(?<!\/\/.*)({).+}/gm, (v, v1) => v.replace(v1, '{\n'));
+    text = $.replace(text, /(?<!\/\/.*)(?<!{)(?<=.)(})/gm, (v, v1) => v.replace(v1, '\n}'));
+    text = $.replace(text, /(?<!\/\/.*)(} +)/gm, (v, v1) => v.replace(v1, '}'));
+    text = $.replace(text, /(?<!\/\/.*)(})(?!;).+/gm, (v, v1) => v.replace(v1, '}\n'));
     const lines = text.split('\n');
     for (let index = 0; index < lines.length; index++) {
         lines[index] = formatLine(lines[index]);
@@ -39,6 +38,20 @@ function provideDocumentFormattingEdits(document: vscode.TextDocument, options: 
     const edit = new vscode.TextEdit(fullRange, text);
 
     return [edit];
+}
+
+/**
+ * 去除多行字符串中每一行的首尾不可见字符
+ * @param input 多行字符串
+ * @returns 处理后的多行字符串
+ */
+function trimLines(input: string): string {
+    // 将字符串按行分割
+    const lines = input.split('\n');
+    // 去除每一行的首尾不可见字符
+    const trimmedLines = lines.map(line => line.trim());
+    // 将处理后的行重新拼接为多行字符串
+    return trimmedLines.join('\n');
 }
 
 /**
