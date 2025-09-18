@@ -6,16 +6,13 @@ variables:
 
 build_job:
   stage: build
-  tags:
-    - centos
+  image: node:20
   # 匹配tag，规则
   # 1.0.0
   # 1.0.0-abc
   rules:
     - if: '$CI_COMMIT_TAG =~ /^\d+\.\d+\.\d+(-.*)?$/'
-  variables:
   before_script:
-    - npm config set registry https://registry.npmjs.org/
     - npm install
   script:
     # 定义package.json的文件路径
