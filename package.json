@@ -28,8 +28,8 @@
         "Formatters"
     ],
     "activationEvents": [
-        "onLanguage:shaderlab",
-        "onLanguage:hlsl"
+        "onLanguage:ShaderLab",
+        "onLanguage:HLSL"
     ],
     "main": "./dist/extension.js",
     "contributes": {

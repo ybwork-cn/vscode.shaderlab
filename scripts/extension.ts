@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import * as hlsl from './hlsl.extension.js';
 
@@ -16,33 +15,33 @@ function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "Beautify ShaderLab" is now active!');
 
     // 格式化工具
-    const documentFormattingEditProvider = vscode.languages.registerDocumentFormattingEditProvider('shaderlab',
+    const documentFormattingEditProvider = vscode.languages.registerDocumentFormattingEditProvider('ShaderLab',
         { provideDocumentFormattingEdits }
     );
 
     // 语义标记提供程序(关键字高亮)
-    const documentSemanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider('shaderlab',
+    const documentSemanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider('ShaderLab',
         new SemanticTokensProvider(),
         tokenLegend
     );
 
     // 代码完成工具
-    const completionItemProvider = vscode.languages.registerCompletionItemProvider('shaderlab', {
+    const completionItemProvider = vscode.languages.registerCompletionItemProvider('ShaderLab', {
         provideCompletionItems,
         resolveCompletionItem: (item, token) => null
     }, '.');
 
     // 定义文档符号工具
-    const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('shaderlab',
+    const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('ShaderLab',
         { provideDocumentSymbols }
     );
 
-    const hoverProvider = vscode.languages.registerHoverProvider('shaderlab',
+    const hoverProvider = vscode.languages.registerHoverProvider('ShaderLab',
         { provideHover }
     );
 
     // 转到定义工具
-    const definitionProvider = vscode.languages.registerDefinitionProvider('shaderlab',
+    const definitionProvider = vscode.languages.registerDefinitionProvider('ShaderLab',
         { provideDefinition }
     );
 
