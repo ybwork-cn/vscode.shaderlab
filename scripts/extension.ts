@@ -45,12 +45,36 @@ function activate(context: vscode.ExtensionContext) {
         { provideDefinition }
     );
 
+    const activateCommand = vscode.commands.registerCommand('ybwork-shaderlab.activate', () => {
+        vscode.window.showInformationMessage('Beautify ShaderLab 已手动激活！');
+    });
+
+    const formatCommand = vscode.commands.registerCommand('ybwork-shaderlab.format', () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('没有活动的编辑器，无法格式化文档！');
+            return;
+        }
+
+        const document = editor.document;
+        if (document.languageId !== 'ShaderLab') {
+            vscode.window.showErrorMessage(`当前文档语言为 ${document.languageId}， 不是 ShaderLab，无法格式化！`);
+            return;
+        }
+
+        vscode.commands.executeCommand('editor.action.formatDocument').then(() => {
+            vscode.window.showInformationMessage('ShaderLab 文档已格式化！');
+        });
+    });
+
     context.subscriptions.push(documentFormattingEditProvider);
     context.subscriptions.push(documentSemanticTokensProvider);
     context.subscriptions.push(completionItemProvider);
     context.subscriptions.push(documentSymbolProvider);
     context.subscriptions.push(hoverProvider);
     context.subscriptions.push(definitionProvider);
+    context.subscriptions.push(activateCommand);
+    context.subscriptions.push(formatCommand);
     hlsl.activate(context);
 }
 

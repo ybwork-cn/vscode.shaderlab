@@ -33,7 +33,18 @@
     ],
     "main": "./dist/extension.js",
     "contributes": {
-        "commands": [],
+        "commands": [
+            {
+                "command": "ybwork-shaderlab.activate",
+                "title": "Activate Beautify ShaderLab",
+                "category": "ShaderLab"
+            },
+            {
+                "command": "ybwork-shaderlab.format",
+                "title": "Format ShaderLab",
+                "category": "ShaderLab"
+            }
+        ],
         "menus": {
             "editor/context": []
         },
