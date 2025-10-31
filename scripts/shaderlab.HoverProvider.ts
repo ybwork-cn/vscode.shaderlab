@@ -21,6 +21,46 @@ export function provideHover(document: vscode.TextDocument, position: vscode.Pos
                 text: 'T min(T v1,T v2)',
                 desc: '对多个参数取最小值(多个通道时分别计算)'
             };
+            case 'ceil': return {
+                text: 'T ceil(T v)',
+                desc: '向上取整(多个通道时分别计算)'
+            };
+            case 'round': return {
+                text: 'T round(T v)',
+                desc: '四舍五入取整(多个通道时分别计算)'
+            };
+            case 'clamp': return {
+                text: 'T clamp(T v,T min,T max)',
+                desc: '将参数限制在指定范围内(多个通道时分别计算)'
+            };
+            case 'lerp': return {
+                text: 'T lerp(T v1,T v2,float t)',
+                desc: '在v1和v2之间根据t插值(多个通道时分别计算)'
+            };
+            case 'sqrt': return {
+                text: 'T sqrt(T v)',
+                desc: '计算平方根(多个通道时分别计算)'
+            };
+            case 'sin': return {
+                text: 'T sin(T v)',
+                desc: '计算正弦值(多个通道时分别计算)'
+            };
+            case 'cos': return {
+                text: 'T cos(T v)',
+                desc: '计算余弦值(多个通道时分别计算)'
+            };
+            case 'tan': return {
+                text: 'T tan(T v)',
+                desc: '计算正切值(多个通道时分别计算)'
+            };
+            case 'length': return {
+                text: 'float length(T v)',
+                desc: '计算向量的长度(只适用于多通道变量)'
+            };
+            case 'step': return {
+                text: 'T step(T edge,T v)',
+                desc: '大于等于edge时返回1.0，否则返回0.0(多个通道时分别计算)'
+            };
             case 'max': return {
                 text: 'T max(T v1,T v2)',
                 desc: '对多个参数取最大值(多个通道时分别计算)'
@@ -60,6 +100,10 @@ export function provideHover(document: vscode.TextDocument, position: vscode.Pos
             case 'UnityWorldSpaceViewDir': return {
                 text: 'float3 UnityWorldSpaceViewDir(float3 pos)',
                 desc: '计算世界空间中从该点到主相机的方向'
+            };
+            case 'TRANSFORM_TEX': return {
+                text: 'float2 TRANSFORM_TEX(float2 uv, sampler2D tex)',
+                desc: '对UV坐标进行缩放和平移'
             };
             default: return null;
         }
