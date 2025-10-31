@@ -15,33 +15,33 @@ function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "Beautify ShaderLab" is now active!');
 
     // 格式化工具
-    const documentFormattingEditProvider = vscode.languages.registerDocumentFormattingEditProvider('ShaderLab',
+    const documentFormattingEditProvider = vscode.languages.registerDocumentFormattingEditProvider('shaderlab',
         { provideDocumentFormattingEdits }
     );
 
     // 语义标记提供程序(关键字高亮)
-    const documentSemanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider('ShaderLab',
+    const documentSemanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider('shaderlab',
         new SemanticTokensProvider(),
         tokenLegend
     );
 
     // 代码完成工具
-    const completionItemProvider = vscode.languages.registerCompletionItemProvider('ShaderLab', {
+    const completionItemProvider = vscode.languages.registerCompletionItemProvider('shaderlab', {
         provideCompletionItems,
         resolveCompletionItem: (item, token) => null
     }, '.');
 
     // 定义文档符号工具
-    const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('ShaderLab',
+    const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('shaderlab',
         { provideDocumentSymbols }
     );
 
-    const hoverProvider = vscode.languages.registerHoverProvider('ShaderLab',
+    const hoverProvider = vscode.languages.registerHoverProvider('shaderlab',
         { provideHover }
     );
 
     // 转到定义工具
-    const definitionProvider = vscode.languages.registerDefinitionProvider('ShaderLab',
+    const definitionProvider = vscode.languages.registerDefinitionProvider('shaderlab',
         { provideDefinition }
     );
 
@@ -57,13 +57,13 @@ function activate(context: vscode.ExtensionContext) {
         }
 
         const document = editor.document;
-        if (document.languageId !== 'ShaderLab') {
-            vscode.window.showErrorMessage(`当前文档语言为 ${document.languageId}， 不是 ShaderLab，无法格式化！`);
+        if (document.languageId !== 'shaderlab') {
+            vscode.window.showErrorMessage(`当前文档语言为 ${document.languageId}， 不是 shaderlab，无法格式化！`);
             return;
         }
 
         vscode.commands.executeCommand('editor.action.formatDocument').then(() => {
-            vscode.window.showInformationMessage('ShaderLab 文档已格式化！');
+            vscode.window.showInformationMessage('shaderlab 文档已格式化！');
         });
     });
 

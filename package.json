@@ -28,8 +28,8 @@
         "Formatters"
     ],
     "activationEvents": [
-        "onLanguage:ShaderLab",
-        "onLanguage:HLSL"
+        "onLanguage:shaderlab",
+        "onLanguage:hlsl"
     ],
     "main": "./dist/extension.js",
     "contributes": {
@@ -51,13 +51,13 @@
         "keybindings": [],
         "languages": [
             {
-                "id": "ShaderLab",
+                "id": "shaderlab",
                 "extensions": [
                     ".shader"
                 ]
             },
             {
-                "id": "HLSL",
+                "id": "hlsl",
                 "extensions": [
                     ".cginc"
                 ]
@@ -65,7 +65,7 @@
         ],
         "grammars": [
             {
-                "language": "ShaderLab",
+                "language": "shaderlab",
                 "scopeName": "source.shaderlab",
                 "path": "./syntaxes/shaderlab.tmLanguage.json"
             }

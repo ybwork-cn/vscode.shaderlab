@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import * as $ from './$.js';
 
+type Line = {
+    content: string;
+    comment: string;
+}
+
 /**
  * Provide formatting edits for a whole document.
  * @param document The document in which the command was invoked.
@@ -15,52 +20,84 @@ function provideDocumentFormattingEdits(document: vscode.TextDocument, options: 
         document.positionAt(document.getText().length)
     );
 
-    let text = document.getText();
-    // 去除每一行的首尾不可见字符
-    text = trimLines(text);
     // 统一换行符为\n，防止不同系统间的换行符不一致导致的问题
-    text = $.replace(text, /\r\n/g, v => '\n');
-    text = $.replace(text, /(?<!\/\/.*)(;).+/gm, (v, v1) => v.replace(v1, ';\n'));
+    const text = $.replace(document.getText(), /\r\n/g, v => '\n');
 
-    text = $.replace(text, /(?<!\/\/.*)({\s*})/gm, (v, v1) => v.replace(v1, '{}'));
-    text = $.replace(text, /(?<!\/\/.*).+({)(?!})/gm, (v, v1) => v.replace(v1, '\n{'));
-    text = $.replace(text, /(?<!\/\/.*)({).+}/gm, (v, v1) => v.replace(v1, '{\n'));
-    text = $.replace(text, /(?<!\/\/.*)(?<!{)(?<=.)(})/gm, (v, v1) => v.replace(v1, '\n}'));
-    text = $.replace(text, /(?<!\/\/.*)(} +)/gm, (v, v1) => v.replace(v1, '}'));
-    text = $.replace(text, /(?<!\/\/.*)(})(?!;).+/gm, (v, v1) => v.replace(v1, '}\n'));
-    const lines = text.split('\n');
+    let lines: Line[] = text.split('\n').map(splitLineAndComment);
+
+    // 去除每一行的首尾不可见字符
+    lines.forEach(line => line.content = line.content.trim());
+
+    // 去除'{'前后的空格
+    replaceByLine(lines, /(\s*{\s*)/gm, (v, v1) => v.replace(v1, '{'));
+    // 去除'}'前后的空格
+    replaceByLine(lines, /(\s*}\s*)/gm, (v, v1) => v.replace(v1, '}'));
+
+    // 分号后，如果有其他内容，换行
+    replaceByLine(lines, /(;).+/gm, (v, v1) => v.replace(v1, ';\n'));
+
+    // 成对的大括号中间没有可见内容的，改为'{}'
+    replaceByLine(lines, /({\s*})/gm, (v, v1) => v.replace(v1, '{}'));
+    // 不在行首的'{'，如果后面不是立即跟着'}'，则在'{'前换行
+    replaceByLine(lines, /.+({)(?!})/gm, (v, v1) => v.replace(v1, '\n{'));
+    // 如果'{'后面不是立即跟着'}'或行尾，则在'{'后换行
+    replaceByLine(lines, /({)(?!}|$)/gm, (v, v1) => v.replace(v1, '{\n'));
+    // 如果'}'前面不是立即跟着'{'，则在'}'前换行
+    replaceByLine(lines, /(?<!{)(?<=.)(})/gm, (v, v1) => v.replace(v1, '\n}'));
+    // 如果'}'后面不是立即跟着';'或行尾，则在'}'后换行
+    replaceByLine(lines, /(})(?!;).+/gm, (v, v1) => v.replace(v1, '}\n'));
     for (let index = 0; index < lines.length; index++) {
-        lines[index] = formatLine(lines[index]);
+        formatLine(lines[index]);
     }
-    text = lines.join('\n');
-    text = ResetTabs(text, options.tabSize);
+    const newText = ResetTabs(lines, options.tabSize);
 
-    const edit = new vscode.TextEdit(fullRange, text);
+    const edit = new vscode.TextEdit(fullRange, newText);
 
     return [edit];
 }
 
-/**
- * 去除多行字符串中每一行的首尾不可见字符
- * @param input 多行字符串
- * @returns 处理后的多行字符串
- */
-function trimLines(input: string): string {
-    // 将字符串按行分割
-    const lines = input.split('\n');
-    // 去除每一行的首尾不可见字符
-    const trimmedLines = lines.map(line => line.trim());
-    // 将处理后的行重新拼接为多行字符串
-    return trimmedLines.join('\n');
+// 分离出一行的代码内容和注释
+function splitLineAndComment(text: string): Line {
+    const commentIndex = text.indexOf('//');
+    return {
+        content: commentIndex === -1 ? text : text.slice(0, commentIndex),
+        comment: commentIndex === -1 ? '' : text.slice(commentIndex + 2),
+    };
+}
+
+// 一行代码按特定正则拆分为多行
+// 例如：以分号拆分为多行
+function replaceByLine(lines: Line[], regex: RegExp, asyncFn: (v: string, ...others: string[]) => string): void {
+    const result: Line[] = [];
+    lines.forEach(line => {
+        line.content = $.replace(line.content, regex, asyncFn);
+        const splitContents = line.content.split('\n');
+        if (splitContents.length == 1)
+            result.push(line);
+        else {
+            const newLines: Line[] = [];
+            for (let j = 0; j < splitContents.length; j++) {
+                newLines.push({
+                    content: splitContents[j],
+                    comment: ''
+                });
+            }
+            newLines.at(-1).comment = line.comment;
+            result.push(...newLines);
+        }
+    });
+    lines.length = 0;
+    lines.push(...result);
 }
 
 /**
  * 格式化一行文本
  */
-function formatLine(text: string) {
+function formatLine(line: Line): void {
     // 提前提取出字符串
     let stringIndex = 0;
     const strings = [];
+    let text = line.content;
     text = $.replace(text, /".*?"/gm, (v) => {
         strings.push(v);
         return `__string__${stringIndex++}__endstring__`;
@@ -143,24 +180,25 @@ function formatLine(text: string) {
     // 去除行尾空格
     text = $.replace(text, / +$/gm, () => '');
 
-    return text;
+    line.content = text;
 }
 
 /**
  * 重新调整后每行缩进
  */
-function ResetTabs(text: string, tabSize: number) {
-    const lines = text.split('\n');
+function ResetTabs(lines: Line[], tabSize: number): string {
     let tabLevel = 0;
     for (let i = 0; i < lines.length; i++) {
-        const isBlockStart = lines[i].startsWith('{');
-        const isBlockEnd = lines[i].startsWith('}');
-        const isInlineBlock = lines[i].startsWith('{') && lines[i].trim().endsWith('}');
+        const line = lines[i];
+        const lineText = line.content.trim();
+        const isBlockStart = lineText.startsWith('{');
+        const isBlockEnd = lineText.startsWith('}');
+        const isInlineBlock = lineText.startsWith('{') && lineText.trim().endsWith('}');
 
-        const isPreDefIf = lines[i].startsWith('#if');
-        const isPreDefElif = lines[i].startsWith('#elif');
-        const isPreDefElse = lines[i].startsWith('#else');
-        const isPreDefEndIf = lines[i].startsWith('#endif');
+        const isPreDefIf = lineText.startsWith('#if');
+        const isPreDefElif = lineText.startsWith('#elif');
+        const isPreDefElse = lineText.startsWith('#else');
+        const isPreDefEndIf = lineText.startsWith('#endif');
         const isPreDefStart = isPreDefIf || isPreDefElif || isPreDefElse;
         const isPreDefEnd = isPreDefElif || isPreDefElse || isPreDefEndIf;
 
@@ -169,29 +207,34 @@ function ResetTabs(text: string, tabSize: number) {
         let curTabLevel = tabLevel;
         if (i > 0 && !isBlockStart) {
             // 紧跟if/else的单语句自动缩进
-            if (/^\s*if|else\b/.test(lines[i - 1]))
+            if (/^\s*if|else\b/.test(lines[i - 1].content))
                 curTabLevel++;
             // 分三行写的三元表达式，后两行自动缩进
-            if (/^[\?\:]/.test(lines[i]))
+            if (/^[\?\:]/.test(line.content))
                 curTabLevel++;
         }
-        if (tabLevel > 0 && lines[i].length > 0)
-            lines[i] = ' '.repeat(curTabLevel * tabSize) + lines[i];
+        if (tabLevel > 0 && line.content.length + line.comment.length > 0)
+            line.content = ' '.repeat(curTabLevel * tabSize) + lineText;
         if (isBlockStart && !isInlineBlock || isPreDefStart)
             tabLevel++;
     }
-    text = "";
-    for (var line of lines)
-        text += line + '\n';
 
-    // 去除行尾空格
-    text = $.replace(text, / +$/gm, () => '');
+    let text = "";
+    for (const line of lines) {
+        text += line.content;
+        if (line.comment.length > 0) {
+            // 如果注释以'/'开头，说明至少3个斜杠，保留原格式
+            if (line.comment.startsWith('/'))
+                text += "//" + line.comment;
+            // 否则去除首尾空格，并添加一个空格
+            else
+                text += "// " + line.comment.trim();
+        }
+        text += '\n';
+    }
 
     // 去除文件末尾的多个换行
-    text = text.replaceAll(/(\r?\n){3,}/g, '\n\n'),
-
-        // 去除文件末尾的多个换行
-        text = $.replace(text, /\n+$/, () => '\n');
+    text = $.replace(text, /\n+$/, () => '\n');
 
     return text;
 }
