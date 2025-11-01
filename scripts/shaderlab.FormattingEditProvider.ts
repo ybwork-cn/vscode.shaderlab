@@ -61,7 +61,7 @@ function splitLineAndComment(text: string): Line {
     const commentIndex = text.indexOf('//');
     return {
         content: commentIndex === -1 ? text : text.slice(0, commentIndex),
-        comment: commentIndex === -1 ? '' : text.slice(commentIndex + 2),
+        comment: commentIndex === -1 ? '' : text.slice(commentIndex),
     };
 }
 
@@ -222,14 +222,12 @@ function ResetTabs(lines: Line[], tabSize: number): string {
     let text = "";
     for (const line of lines) {
         text += line.content;
-        if (line.comment.length > 0) {
-            // 如果注释以'/'开头，说明至少3个斜杠，保留原格式
-            if (line.comment.startsWith('/'))
-                text += "//" + line.comment;
-            // 否则去除首尾空格，并添加一个空格
-            else
-                text += "// " + line.comment.trim();
-        }
+        let padding = line.content.length % tabSize;
+        if (padding === 0)
+            padding = tabSize;
+        let comment = line.comment.trimEnd();
+        if (comment.length > 0)
+            text += ' '.repeat(padding) + comment;
         text += '\n';
     }
 
