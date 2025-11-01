@@ -43,7 +43,7 @@ function getSymbolDefine(document: vscode.TextDocument, name: string, temp: Docu
  * @return A definition or a thenable that resolves to such. The lack of a result can be
  * signaled by returning `undefined` or `null`.
  */
-function provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DefinitionLink[]> {
+export function provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DefinitionLink[]> {
     return getDocumentSymbols(document).then<vscode.LocationLink[]>(symbols => {
         for (const symbol of symbols) {
             const symbolStack = getSymbolStack(symbol, position);
@@ -74,7 +74,9 @@ function provideDefinition(document: vscode.TextDocument, position: vscode.Posit
 }
 
 function nextSymbol(document: vscode.TextDocument, symbolStack: vscode.DocumentSymbol[], position: vscode.Position): vscode.DefinitionLink {
+    // 当前光标下的单词
     const word = document.getText(document.getWordRangeAtPosition(position));
+    // 倒序，由内而外查找定义
     for (let index = symbolStack.length - 1; index >= 0; index--) {
         const symbol = symbolStack[index];
         let target = symbol.children.find(symbol => symbol.name === word);
@@ -97,5 +99,3 @@ function nextSymbol(document: vscode.TextDocument, symbolStack: vscode.DocumentS
     }
     return null;
 }
-
-export { provideDefinition };

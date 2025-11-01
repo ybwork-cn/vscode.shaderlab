@@ -1,12 +1,84 @@
 import * as vscode from 'vscode';
+import * as $ from './$.js';
+import {
+    findAllSymbols,
+    findSymbolsBySymbolKind,
+    findSymbolsByName,
+    getDocumentSymbols,
+    getSymbolStack,
+} from './shaderlab.DocumentStructure.js';
+
+type FunctionDef = {
+    text: string;
+    desc?: string;
+}
 
 export function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
-    const range = document.getWordRangeAtPosition(position);
-    const functionName = document.getText(range);
-    type FunctionDef = {
-        text: string;
-        desc?: string;
+    //调用VSCode API获取当前光标下单词的原始定义
+    return vscode.commands
+        .executeCommand<vscode.DefinitionLink[]>('vscode.executeDefinitionProvider', document.uri, position)
+        .then<vscode.Hover>(definitions => {
+            for (const def of definitions) {
+                const hoverMessage = new vscode.MarkdownString();
+                hoverMessage.isTrusted = false; // 默认值，明确写出以示清晰
+                hoverMessage.supportHtml = false; // 确保不支持HTML，以防止安全问题
+
+                // 仅处理当前文档内的定义
+                if (def.targetUri.toString() !== document.uri.toString())
+                    continue;
+
+                return getDocumentSymbols(document)
+                    .then<vscode.Hover>(symbols => {
+                        for (const symbol of symbols) {
+                            const symbolStack = getSymbolStack(symbol, position);
+                            if (symbolStack.length === 0)
+                                continue;
+                            const target = symbolStack.at(-1);
+                            console.log(target.kind);
+                            if (target.kind === vscode.SymbolKind.Method) {
+                                // 函数显示完整函数头
+                                let defineText = getTrimedText(document, target.range);
+                                defineText = defineText.split('{')[0];
+                                // 使用 fenced code block 并指定语言标识符来触发语法高亮
+                                hoverMessage.appendCodeblock(defineText, 'shaderlab');
+                                return new vscode.Hover(hoverMessage);
+                            }
+                            else if (target.kind === vscode.SymbolKind.Variable) {
+                                // 变量定义后面加分号
+                                const defineText = getTrimedText(document, def.targetRange) + ';';
+                                // 使用 fenced code block 并指定语言标识符来触发语法高亮
+                                hoverMessage.appendCodeblock(defineText, 'shaderlab');
+                                return new vscode.Hover(hoverMessage);
+                            }
+                            else {
+                                const defineText = getTrimedText(document, def.targetRange);
+                                // 使用 fenced code block 并指定语言标识符来触发语法高亮
+                                hoverMessage.appendCodeblock(defineText, 'shaderlab');
+                                return new vscode.Hover(hoverMessage);
+                            }
+                        }
+                    });
+            }
+
+            // 如果没有找到定义，则尝试提供内置函数的悬停信息
+            const wordRange = document.getWordRangeAtPosition(position);
+            const functionName = document.getText(wordRange);
+            return provideFunctionHover(functionName);
+        });
+}
+
+function getTrimedText(document: vscode.TextDocument, range: vscode.Range): string {
+    let text = document.getText(range);
+    text = $.replace(text, /^\r\n/, (v) => '\n');
+    const lines = text.split('\n');
+    const indent = range.start.character;
+    for (let i = 1; i < lines.length; i++) {
+        lines[i] = lines[i].slice(indent);
     }
+    return lines.join('\n');
+}
+
+function provideFunctionHover(functionName: string): vscode.ProviderResult<vscode.Hover> {
     const getFunctionDef = (): FunctionDef => {
         switch (functionName) {
             case 'floor': return {
@@ -121,5 +193,4 @@ export function provideHover(document: vscode.TextDocument, position: vscode.Pos
         // 创建一个 MarkdownString 来格式化悬停内容
         return new vscode.Hover(hoverMessage);
     }
-    return null;
 }

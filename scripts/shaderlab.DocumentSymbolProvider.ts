@@ -54,13 +54,14 @@ function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.Doc
         if (_exit)
             continue;
 
+        const endPosition = document.positionAt(match.index + rangeIndex.start + match[0].indexOf(match[2]) + match[2].length);
         const selectionRange = new vscode.Range(
-            document.positionAt(match.index + match[0].indexOf(match[2]) + rangeIndex.start),
-            document.positionAt(match.index + match[0].indexOf(match[2]) + match[2].length + rangeIndex.start));
+            document.positionAt(match.index + rangeIndex.start + match[0].indexOf(match[2])),
+            endPosition);
 
         const range = new vscode.Range(
             document.positionAt(match.index + rangeIndex.start),
-            document.positionAt(match.index + rangeIndex.start + match[0].length));
+            endPosition);
 
         // 防止 return x;
         if (isType(rootShaderSymbol, range.start, match[1])) {
@@ -117,7 +118,7 @@ function SemanticTokens_Struct(document: vscode.TextDocument, root: vscode.Docum
         if (arrayMatch = /\[\d+\]/g.exec(match[2]))
             detail += arrayMatch[0];
 
-        const node = new vscode.DocumentSymbol(name, detail, vscode.SymbolKind.Variable, range, selectionRange);
+        const node = new vscode.DocumentSymbol(name, detail, vscode.SymbolKind.Field, range, selectionRange);
         root.children.push(node);
     }
 }
@@ -138,7 +139,7 @@ function SemanticTokens_CGPROGRAM(document: vscode.TextDocument, root: vscode.Do
             document.positionAt(match.index + rangeIndex.start),
             document.positionAt(bracket.end));
 
-        const node = new vscode.DocumentSymbol(match[2], '', vscode.SymbolKind.Class, range, selectionRange);
+        const node = new vscode.DocumentSymbol(match[2], '', vscode.SymbolKind.Struct, range, selectionRange);
         root.children.push(node);
 
         SemanticTokens_Struct(document, node, bracket);
@@ -197,7 +198,7 @@ function SemanticTokens_CG(document: vscode.TextDocument, root: vscode.DocumentS
             document.positionAt(matchStart.index + rangeIndex.start),
             document.positionAt(matchEnd.index + matchEnd[0].length + rangeIndex.start));
 
-        const node = new vscode.DocumentSymbol(matchStart[0].toUpperCase(), '', vscode.SymbolKind.Null, range, selectionRange);
+        const node = new vscode.DocumentSymbol(matchStart[0].toUpperCase(), '', vscode.SymbolKind.Package, range, selectionRange);
         root.children.push(node);
 
         const start = matchStart[0].length + matchStart.index + rangeIndex.start;

@@ -95,23 +95,48 @@ export function getDocumentSymbols(document: vscode.TextDocument): Thenable<vsco
     return vscode.commands.executeCommand<vscode.DocumentSymbol[]>('vscode.executeDocumentSymbolProvider', document.uri);
 }
 
-export function findSymbolsBySymbolKind(symbols: vscode.DocumentSymbol[], names: string[], kind: vscode.SymbolKind): vscode.DocumentSymbol[] {
+export function findAllSymbols(symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] {
     const result: vscode.DocumentSymbol[] = [];
-    for (const symbol of symbols) {
-        if (names.indexOf(symbol.name) >= 0 && symbol.kind == kind)
-            result.push(symbol);
-        else
-            result.push(...findSymbolsBySymbolKind(symbol.children, names, kind));
+    result.push(symbol);
+    for (const child of symbol.children) {
+        result.push(...findAllSymbols(child));
     }
     return result;
+}
+
+export function findSymbolsBySymbolKind(symbols: vscode.DocumentSymbol[], kinds: vscode.SymbolKind[]): vscode.DocumentSymbol[] {
+    const result: vscode.DocumentSymbol[] = [];
+    for (const symbol of symbols) {
+        if (kinds.includes(symbol.kind))
+            result.push(symbol);
+        result.push(...findSymbolsBySymbolKind(symbol.children, kinds));
+    }
+    return result;
+}
+
+export function findSymbolsByName(symbols: vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] {
+    const result: vscode.DocumentSymbol[] = [];
+    for (const symbol of symbols) {
+        if (names.indexOf(symbol.name) >= 0)
+            result.push(symbol);
+        result.push(...findSymbolsByName(symbol.children, names));
+    }
+    return result;
+}
+
+function symbolContainsPosition(symbol: vscode.DocumentSymbol, position: vscode.Position): boolean {
+    return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
 }
 
 export function getSymbolStack(symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] {
     if (symbol == null)
         return [];
 
+    if (!symbolContainsPosition(symbol, position))
+        return [];
+
     for (const child of symbol.children) {
-        if (child.range.start.compareTo(position) <= 0 && child.range.end.compareTo(position) >= 0)
+        if (symbolContainsPosition(child, position))
             return [symbol, ...getSymbolStack(child, position)];
     }
     return [symbol];
