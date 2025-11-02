@@ -30,11 +30,10 @@ export function provideHover(document: vscode.TextDocument, position: vscode.Pos
                 return getDocumentSymbols(document)
                     .then<vscode.Hover>(symbols => {
                         for (const symbol of symbols) {
-                            const symbolStack = getSymbolStack(symbol, position);
+                            const symbolStack = getSymbolStack(symbol, def.targetSelectionRange.start);
                             if (symbolStack.length === 0)
                                 continue;
                             const target = symbolStack.at(-1);
-                            console.log(target.kind);
                             if (target.kind === vscode.SymbolKind.Method) {
                                 // 函数显示完整函数头
                                 let defineText = getTrimedText(document, target.range);
