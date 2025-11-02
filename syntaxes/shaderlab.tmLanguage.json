@@ -3,6 +3,9 @@
     "scopeName": "source.shaderlab",
     "patterns": [
         {
+            "include": "#structFieldDefine"
+        },
+        {
             "include": "#hlsl-embedded"
         },
         {
@@ -143,20 +146,27 @@
                 }
             ]
         },
+        "types": {
+            "patterns": [
+                {
+                    "match": "\\b(fixed|float|int|half)([1-4](x[1-4])?)?\\b",
+                    "name": "storage.type.basic.shaderlab"
+                },
+                {
+                    "match": "\\b(sampler2D)\\b",
+                    "name": "entity.name.type.class.shaderlab"
+                },
+                {
+                    "name": "entity.name.type.struct.shaderlab",
+                    "match": ".*"
+                }
+            ]
+        },
         "paramsDefine": {
             "match": "(\\w+)\\s+(\\w+)",
             "captures": {
                 "1": {
-                    "patterns": [
-                        {
-                            "match": "\\b(fixed|float|int|half)([1-4](x[1-4])?)?\\b",
-                            "name": "storage.type.basic.shaderlab"
-                        },
-                        {
-                            "name": "entity.name.type.struct.shaderlab",
-                            "match": ".*"
-                        }
-                    ]
+                    "include": "#types"
                 },
                 "2": {
                     "name": "support.variable.shaderlab"
@@ -170,12 +180,7 @@
                 "1": {
                     "patterns": [
                         {
-                            "match": "\\b(fixed|float|int|half)([1-4](x[1-4])?)?\\b",
-                            "name": "storage.type.basic.shaderlab"
-                        },
-                        {
-                            "name": "entity.name.type.struct.shaderlab",
-                            "match": ".*"
+                            "include": "#types"
                         }
                     ]
                 },
@@ -194,6 +199,38 @@
                     "match": "POSITION|SV_POSITION|NORMAL|SV_TARGET|TEXCOORD[0-9]"
                 }
             }
+        },
+        "structFieldDefine": {
+            "patterns": [
+                {
+                    "match": "(\\w+)\\s+(\\w+(?:\\[\\d+\\])?)\\s*:\\s*(\\w+)",
+                    "captures": {
+                        "1": {
+                            "patterns": [
+                                {
+                                    "include": "#types"
+                                }
+                            ]
+                        },
+                        "2": {
+                            "name": "entity.name.variable.field.shaderlab",
+                            "patterns": [
+                                {
+                                    "include": "#numbers"
+                                }
+                            ]
+                        },
+                        "3": {
+                            "patterns": [
+                                {
+                                    "name": "constant.language.shaderlab",
+                                    "match": "POSITION|SV_POSITION|NORMAL|SV_TARGET|TEXCOORD[0-9]"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
         },
         "structDefine": {
             "patterns": [
@@ -214,28 +251,7 @@
                             "include": "#comments"
                         },
                         {
-                            "match": "(\\w+)\\s+(\\w+(?:\\[\\d+\\])?)\\s*:\\s*(\\w+)",
-                            "captures": {
-                                "1": {
-                                    "name": "keyword.type.shaderlab"
-                                },
-                                "2": {
-                                    "name": "entity.name.variable.field.shaderlab",
-                                    "patterns": [
-                                        {
-                                            "include": "#numbers"
-                                        }
-                                    ]
-                                },
-                                "3": {
-                                    "patterns": [
-                                        {
-                                            "name": "constant.language.shaderlab",
-                                            "match": "POSITION|SV_POSITION|NORMAL|SV_TARGET|TEXCOORD[0-9]"
-                                        }
-                                    ]
-                                }
-                            }
+                            "include": "#structFieldDefine"
                         }
                     ]
                 }
@@ -286,7 +302,11 @@
                     "match": "(\\w+)\\s+(\\w+(?:\\[\\d*\\])?);",
                     "captures": {
                         "1": {
-                            "name": "keyword.type.shaderlab"
+                            "patterns": [
+                                {
+                                    "include": "#types"
+                                }
+                            ]
                         },
                         "2": {
                             "name": "entity.name.variable.field.shaderlab",
