@@ -28,7 +28,7 @@ export function isType(root: vscode.DocumentSymbol, position: vscode.Position, l
 
     while (stack.length > 0) {
         const last = stack.pop();
-        const struct = last.children.find(item => item.kind == vscode.SymbolKind.Class && item.name == label);
+        const struct = last.children.find(item => item.kind == vscode.SymbolKind.Struct && item.name == label);
         if (struct != null)
             return 'struct';
     }

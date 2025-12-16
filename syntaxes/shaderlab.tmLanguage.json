@@ -153,27 +153,48 @@
                     "name": "storage.type.basic.shaderlab"
                 },
                 {
+                    "match": "\\bvoid\\b",
+                    "name": "storage.type.basic.shaderlab"
+                },
+                {
                     "match": "\\b(sampler2D)\\b",
                     "name": "entity.name.type.class.shaderlab"
                 },
                 {
-                    "name": "entity.name.type.struct.shaderlab",
-                    "match": ".*"
+                    "match": ".*",
+                    "name": "entity.name.type.struct.shaderlab"
                 }
             ]
         },
         "paramsDefine": {
-            "match": "(\\w+)\\s+(\\w+)",
+            "name": "meta.parameter.shaderlab",
+            "match": "(out\\s+)?(\\w+)\\s+(\\w+)(?:\\s*:\\s*(\\w+))?",
             "captures": {
                 "1": {
-                    "include": "#types"
+                    "name": "storage.type.basic.shaderlab"
                 },
                 "2": {
+                    "patterns": [
+                        {
+                            "include": "#types"
+                        }
+                    ]
+                },
+                "3": {
                     "name": "support.variable.shaderlab"
+                },
+                "4": {
+                    "patterns": [
+                        {
+                            "name": "constant.language.shaderlab",
+                            "match": "VPOS|POSITION|SV_POSITION|NORMAL|SV_TARGET|TEXCOORD[0-9]"
+                        }
+                    ]
                 }
             }
         },
         "functionDefine": {
+            "name": "meta.function.shaderlab",
             "注释": "函数定义",
             "match": "(\\w+)\\s+(\\w+)\\s*\\((.*?)\\)(?:\\s*:\\s*(\\w+))?\\s*",
             "captures": {
@@ -196,7 +217,7 @@
                 },
                 "4": {
                     "name": "constant.language.shaderlab",
-                    "match": "POSITION|SV_POSITION|NORMAL|SV_TARGET|TEXCOORD[0-9]"
+                    "match": "VPOS|POSITION|SV_POSITION|NORMAL|SV_TARGET|TEXCOORD[0-9]"
                 }
             }
         },

@@ -1,5 +1,5 @@
 # Beautify ShaderLab
-[git仓库](https://ybwork.cn:12343/vscode-extension/shaderlab.git)
+[git仓库](https://github.com/ybwork-cn/vscode-extension-shaderlab.git)
 
 本插件为ShaderLab语言插件
 有bug或者改进建议，请联系 qq 2979351193

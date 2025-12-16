@@ -80,6 +80,10 @@ function getTrimedText(document: vscode.TextDocument, range: vscode.Range): stri
 function provideFunctionHover(functionName: string): vscode.ProviderResult<vscode.Hover> {
     const getFunctionDef = (): FunctionDef => {
         switch (functionName) {
+            case 'clip': return {
+                text: 'void clip(float v)',
+                desc: '裁剪函数，当参数小于0时丢弃当前像素'
+            };
             case 'floor': return {
                 text: 'T floor(T v)',
                 desc: '向下取整(多个通道时分别计算)'
@@ -103,6 +107,10 @@ function provideFunctionHover(functionName: string): vscode.ProviderResult<vscod
             case 'clamp': return {
                 text: 'T clamp(T v,T min,T max)',
                 desc: '将参数限制在指定范围内(多个通道时分别计算)'
+            };
+            case 'saturate': return {
+                text: 'T saturate(T v)',
+                desc: '将参数限制在0到1之间(多个通道时分别计算)'
             };
             case 'lerp': return {
                 text: 'T lerp(T v1,T v2,float t)',

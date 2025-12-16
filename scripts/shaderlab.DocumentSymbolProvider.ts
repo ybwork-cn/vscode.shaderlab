@@ -6,7 +6,7 @@ function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.Doc
     const text = getDocumentText(document, rangeIndex);
     let match: RegExpExecArray;
 
-    let regex_para = /(?<!\/\/.*)(\w+)\s+(\w+(?:\[\d*\])?)\s*=/g;
+    let regex_para = /(?<!\/\/.*)(\w+)\s+(\w+(?:\[\d*\])?)(\s*[=;])/g;
     while ((match = regex_para.exec(text))) {
         const startPosition = document.positionAt(match.index + rangeIndex.start);
         let _exit = false;
@@ -19,14 +19,15 @@ function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.Doc
         if (_exit)
             continue;
 
+        const match_1_start = match[0].indexOf(match[1]);
+        const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
         const selectionRange = new vscode.Range(
-            document.positionAt(match.index + match[0].indexOf(match[2]) + rangeIndex.start),
-            document.positionAt(match.index + match[0].indexOf(match[2]) + match[2].length + rangeIndex.start));
+            document.positionAt(rangeIndex.start + match.index + match_2_start),
+            document.positionAt(rangeIndex.start + match.index + match_2_start + match[2].length));
 
         const range = new vscode.Range(
-            document.positionAt(match.index + rangeIndex.start),
-            document.positionAt(match.index + rangeIndex.start + match[0].indexOf(match[2]) + match[2].length));
-
+            document.positionAt(rangeIndex.start + match.index + match_1_start),
+            document.positionAt(rangeIndex.start + match.index + match_2_start + match[2].length));
         // 防止 return x;
         if (isType(rootShaderSymbol, range.start, match[1])) {
             const name = /^\w+/.exec(match[2])[0];
@@ -54,13 +55,15 @@ function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.Doc
         if (_exit)
             continue;
 
-        const endPosition = document.positionAt(match.index + rangeIndex.start + match[0].indexOf(match[2]) + match[2].length);
+        const match_1_start = match[0].indexOf(match[1]);
+        const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
+        const endPosition = document.positionAt(match.index + rangeIndex.start + match_2_start + match[2].length);
         const selectionRange = new vscode.Range(
-            document.positionAt(match.index + rangeIndex.start + match[0].indexOf(match[2])),
+            document.positionAt(rangeIndex.start + match.index + match_2_start),
             endPosition);
 
         const range = new vscode.Range(
-            document.positionAt(match.index + rangeIndex.start),
+            document.positionAt(rangeIndex.start + match.index + match_1_start),
             endPosition);
 
         // 防止 return x;
@@ -82,17 +85,17 @@ function SemanticTokens_params(document: vscode.TextDocument, root: vscode.Docum
     const text = getDocumentText(document, rangeIndex);
     let match: RegExpExecArray;
 
-    const regex_para = /(\w+)\s+(\w+)/mg;
+    const regex_para = /(out\s+)?(\w+)\s+(\w+)/mg;
     while ((match = regex_para.exec(text))) {
+        const match_2_start = match[0].indexOf(match[2]);
+        const match_3_start = match[0].indexOf(match[3], match_2_start + match[2].length);
         const selectionRange = new vscode.Range(
-            document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2], match[1].length)),
-            document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2], match[1].length) + match[2].length));
-
+            document.positionAt(rangeIndex.start + match.index + match_3_start),
+            document.positionAt(rangeIndex.start + match.index + match_3_start + match[3].length));
         const range = new vscode.Range(
-            document.positionAt(match.index + rangeIndex.start),
-            document.positionAt(match.index + rangeIndex.start + match[0].length));
-
-        const node = new vscode.DocumentSymbol(match[2], match[1], vscode.SymbolKind.Variable, range, selectionRange);
+            document.positionAt(rangeIndex.start + match.index + match_2_start),
+            document.positionAt(rangeIndex.start + match.index + match[0].length));
+        const node = new vscode.DocumentSymbol(match[3], match[2], vscode.SymbolKind.Variable, range, selectionRange);
         root.children.push(node);
     }
 }
@@ -103,9 +106,12 @@ function SemanticTokens_Struct(document: vscode.TextDocument, root: vscode.Docum
 
     const regex_field = /(\w+)\s+(\S+)\s*:\s*(\w+).*?$/mg;
     while ((match = regex_field.exec(text))) {
+        const match_1_start = match[0].indexOf(match[1]);
+        const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
+        const match_3_start = match[0].indexOf(match[3], match_2_start + match[2].length);
         const selectionRange = new vscode.Range(
-            document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2])),
-            document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2]) + match[2].match(/\w+/)[0].length));
+            document.positionAt(rangeIndex.start + match.index + match_2_start),
+            document.positionAt(rangeIndex.start + match.index + match_2_start + match[2].match(/\w+/)[0].length));
 
         const range = new vscode.Range(
             document.positionAt(match.index + rangeIndex.start),
@@ -129,9 +135,11 @@ function SemanticTokens_CGPROGRAM(document: vscode.TextDocument, root: vscode.Do
 
     const regex_struct = /(?<!\/\/.*)(struct)\s*(\w+)\s*{/g;
     while (match = regex_struct.exec(text)) {
+        const match_1_start = match[0].indexOf(match[1]);
+        const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
         const selectionRange = new vscode.Range(
-            document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2])),
-            document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2]) + match[2].length));
+            document.positionAt(rangeIndex.start + match.index + match_2_start),
+            document.positionAt(rangeIndex.start + match.index + match_2_start + match[2].length));
 
         const end = match[0].length - 1 + match.index + rangeIndex.start;
         const bracket = rangeIndex.children.find(item => item.start == end);
@@ -147,21 +155,24 @@ function SemanticTokens_CGPROGRAM(document: vscode.TextDocument, root: vscode.Do
 
     const regex_function = /(?<!\/\/.*)(\w+)\s+(\w+)\s*\((.*?)\)(?:\s*:\s*(\w+))?\s*{/g;
     while (match = regex_function.exec(text)) {
+        const match_1_start = match[0].indexOf(match[1]);
+        const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
+        const match_3_start = match[0].indexOf(match[3], match_2_start + match[2].length);
         const selectionRange = new vscode.Range(
-            document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2])),
-            document.positionAt(rangeIndex.start + match.index + match[0].indexOf(match[2]) + match[2].length));
+            document.positionAt(rangeIndex.start + match.index + match_2_start),
+            document.positionAt(rangeIndex.start + match.index + match_2_start + match[2].length));
 
-        const end = match[0].length - 1 + match.index + rangeIndex.start;
+        const end = rangeIndex.start + match.index + match[0].length - 1;
         const bracket = rangeIndex.children.find(item => item.start == end);
         const range = new vscode.Range(
-            document.positionAt(match.index + rangeIndex.start),
+            document.positionAt(rangeIndex.start + match.index),
             document.positionAt(bracket.end));
 
         const node = new vscode.DocumentSymbol(match[2], match[1], vscode.SymbolKind.Method, range, selectionRange);
         root.children.push(node);
 
         if (match[3].length > 0) {
-            const start = match.index + match[0].indexOf(match[3], match[0].indexOf(match[2]) + match[2].length) + rangeIndex.start;
+            const start = rangeIndex.start + match.index + match_3_start;
             SemanticTokens_params(document, node, { start, end: start + match[3].length, children: rangeIndex.children });
         }
 
