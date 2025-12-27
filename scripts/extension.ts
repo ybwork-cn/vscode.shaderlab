@@ -6,6 +6,10 @@ import { provideDocumentFormattingEdits } from './shaderlab.FormattingEditProvid
 import { provideDefinition } from './shaderlab.DefinitionProvider.js';
 import { provideDocumentSymbols } from './shaderlab.DocumentSymbolProvider.js';
 import { provideHover } from './shaderlab.HoverProvider.js';
+import {
+    diagnosticCollection,
+    provideDiagnostics
+} from './shaderlab.diagnosticProvider.js';
 import * as $ from './$.js';
 
 function activate(context: vscode.ExtensionContext) {
@@ -67,14 +71,31 @@ function activate(context: vscode.ExtensionContext) {
         });
     });
 
+    // 注册一个文档打开/更改监听器
+    const textChangedEvent = vscode.workspace.onDidChangeTextDocument(event => {
+        provideDiagnostics(event.document);
+    });
+
+    // 注册格式化提供程序
     context.subscriptions.push(documentFormattingEditProvider);
+    // 注册语义标记提供程序
     context.subscriptions.push(documentSemanticTokensProvider);
+    // 注册代码完成提供程序
     context.subscriptions.push(completionItemProvider);
+    // 注册文档符号提供程序
     context.subscriptions.push(documentSymbolProvider);
+    // 注册悬停提供程序
     context.subscriptions.push(hoverProvider);
+    // 注册转到定义提供程序
     context.subscriptions.push(definitionProvider);
+    // 注册激活命令
     context.subscriptions.push(activateCommand);
+    // 注册格式化命令
     context.subscriptions.push(formatCommand);
+    // 注册诊断集合监听器
+    context.subscriptions.push(diagnosticCollection);
+    // 注册文档变化监听器
+    context.subscriptions.push(textChangedEvent);
     hlsl.activate(context);
 }
 
