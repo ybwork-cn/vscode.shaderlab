@@ -112,9 +112,17 @@ function provideFunctionHover(functionName: string): vscode.ProviderResult<vscod
                 text: 'T saturate(T v)',
                 desc: '将参数限制在0到1之间(多个通道时分别计算)'
             };
+            case 'frac': return {
+                text: 'T frac(T v)',
+                desc: '返回参数的小数部分(多个通道时分别计算)'
+            };
             case 'lerp': return {
                 text: 'T lerp(T v1,T v2,float t)',
                 desc: '在v1和v2之间根据t插值(多个通道时分别计算)'
+            };
+            case 'smoothstep': return {
+                text: 'T smoothstep(T edge1,T edge2,T v)',
+                desc: '在edge1和edge2之间对参数进行平滑插值(多个通道时分别计算)'
             };
             case 'sqrt': return {
                 text: 'T sqrt(T v)',
