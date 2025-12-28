@@ -4,6 +4,7 @@ import * as $ from './$.js';
 type Line = {
     content: string;
     comment: string;
+    indent: number;
 }
 
 /**
@@ -23,10 +24,10 @@ function provideDocumentFormattingEdits(document: vscode.TextDocument, options: 
     // 统一换行符为\n，防止不同系统间的换行符不一致导致的问题
     const text = $.replace(document.getText(), /\r\n/g, v => '\n');
 
-    let lines: Line[] = text.split('\n').map(splitLineAndComment);
-
-    // 去除每一行的首尾不可见字符
-    lines.forEach(line => line.content = line.content.trim());
+    let lines: Line[] = text
+        .replaceAll(/\r/g, '')
+        .split('\n')
+        .map(splitLineAndComment);
 
     // 去除'{'前后的空格
     replaceByLine(lines, /(\s*{\s*)/gm, (v, v1) => v.replace(v1, '{'));
@@ -60,8 +61,9 @@ function provideDocumentFormattingEdits(document: vscode.TextDocument, options: 
 function splitLineAndComment(text: string): Line {
     const commentIndex = text.indexOf('//');
     return {
-        content: commentIndex === -1 ? text : text.slice(0, commentIndex),
-        comment: commentIndex === -1 ? '' : text.slice(commentIndex),
+        content: commentIndex === -1 ? text.trim() : text.slice(0, commentIndex).trim(),
+        comment: commentIndex === -1 ? '' : text.slice(commentIndex).trim(),
+        indent: 0,
     };
 }
 
@@ -79,7 +81,8 @@ function replaceByLine(lines: Line[], regex: RegExp, asyncFn: (v: string, ...oth
             for (let j = 0; j < splitContents.length; j++) {
                 newLines.push({
                     content: splitContents[j],
-                    comment: ''
+                    comment: '',
+                    indent: 0,
                 });
             }
             newLines.at(-1).comment = line.comment;
@@ -102,15 +105,6 @@ function formatLine(line: Line): void {
         strings.push(v);
         return `__string__${stringIndex++}__endstring__`;
     });
-
-    // 提前提取出注释
-    let annotation = "";
-    const annotationMatchResult = text.match(/\/\/.*$/);
-    if (annotationMatchResult && annotationMatchResult.length > 0) {
-        annotation = text.substring(annotationMatchResult.index);
-        annotation = annotation.replace(/\/\/ */, `// `);
-        text = text.substring(0, annotationMatchResult.index);
-    }
 
     // tab转为空格
     text = $.replace(text, /\t/gm, () => ' ');
@@ -159,8 +153,6 @@ function formatLine(line: Line): void {
     // 去除行尾空格
     text = $.replace(text, / +$/gm, () => '');
 
-    // 删除一个双斜杠前被错误添加的空格
-    text = $.replace(text, / \/\//gm, () => '//');
     // 不在行首的连续空格合并为一个(除了双斜杠前的空格)
     text = $.replace(text, /\S+( +)(\/\/)?/gm, (v, v1, v2) => {
         if (v2 == undefined)
@@ -168,14 +160,9 @@ function formatLine(line: Line): void {
         else
             return v;
     });
-    // 双斜杠后的连续空格修改为一个
-    text = $.replace(text, /\/\/ */gm, () => '// ');
 
     // 字符串还原
     text = $.replace(text, /__string__(\d*)__endstring__/gm, (_, v1) => strings[v1]);
-
-    // 注释还原
-    text += annotation;
 
     // 去除行尾空格
     text = $.replace(text, / +$/gm, () => '');
@@ -190,10 +177,10 @@ function ResetTabs(lines: Line[], tabSize: number): string {
     let tabLevel = 0;
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const lineText = line.content.trim();
+        const lineText = line.content;
         const isBlockStart = lineText.startsWith('{');
         const isBlockEnd = lineText.startsWith('}');
-        const isInlineBlock = lineText.startsWith('{') && lineText.trim().endsWith('}');
+        const isInlineBlock = lineText.startsWith('{') && lineText.endsWith('}');
 
         const isPreDefIf = lineText.startsWith('#if');
         const isPreDefElif = lineText.startsWith('#elif');
@@ -214,16 +201,16 @@ function ResetTabs(lines: Line[], tabSize: number): string {
                 curTabLevel++;
         }
         if (tabLevel > 0 && line.content.length + line.comment.length > 0)
-            line.content = ' '.repeat(curTabLevel * tabSize) + lineText;
+            line.indent = curTabLevel * tabSize;
         if (isBlockStart && !isInlineBlock || isPreDefStart)
             tabLevel++;
     }
 
     let text = "";
     for (const line of lines) {
-        text += line.content;
+        text += ' '.repeat(line.indent) + line.content;
         let padding = line.content.length % tabSize;
-        if (padding === 0)
+        if (line.content.length !== 0 && padding === 0)
             padding = tabSize;
         let comment = line.comment.trimEnd();
         if (comment.length > 0)
