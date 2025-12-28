@@ -1,9 +1,6 @@
 import * as vscode from 'vscode';
 import * as $ from './$.js';
-import {
-    getDocumentSymbols,
-    getSymbolStack,
-} from './shaderlab.DocumentStructure.js';
+import { documentStructureUtils } from './shaderlab.DocumentStructure.js';
 
 type FunctionDef = {
     text: string;
@@ -169,10 +166,11 @@ class HoverProvider implements vscode.HoverProvider {
                     if (def.targetUri.toString() !== document.uri.toString())
                         continue;
 
-                    return getDocumentSymbols(document)
+                    return documentStructureUtils
+                        .getDocumentSymbols(document)
                         .then<vscode.Hover>(symbols => {
                             for (const symbol of symbols) {
-                                const symbolStack = getSymbolStack(symbol, def.targetSelectionRange.start);
+                                const symbolStack = documentStructureUtils.getSymbolStack(symbol, def.targetSelectionRange.start);
                                 if (symbolStack.length === 0)
                                     continue;
                                 const target = symbolStack.at(-1);

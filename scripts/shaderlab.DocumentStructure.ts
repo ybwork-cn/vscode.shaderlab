@@ -1,11 +1,24 @@
-
 import * as vscode from 'vscode';
 
-export interface BracketInfo {
-    start: number
-    end: number
-    bracketType?: '()' | '{}'
-    children?: BracketInfo[]
+class BracketInfo {
+    readonly document: vscode.TextDocument;
+    readonly start: number
+    private _end: number
+    get end() { return this._end; }
+    readonly bracketType?: '()' | '{}'
+    readonly children?: BracketInfo[];
+    constructor(document: vscode.TextDocument, start: number, bracketType: '()' | '{}' | null) {
+        this.document = document;
+        this.start = start;
+        this._end = document.getText().length;
+        this.bracketType = bracketType;
+        this.children = [];
+    }
+    set_end(value: number) { this._end = value; }
+    get text() {
+        const range = new vscode.Range(this.document.positionAt(this.start), this.document.positionAt(this.end));
+        return this.document.getText(range);
+    }
 }
 
 /**
@@ -15,7 +28,7 @@ export interface BracketInfo {
  * @param label
  * @returns
  */
-export function isType(root: vscode.DocumentSymbol, position: vscode.Position, label: string): 'baseType' | 'struct' | false {
+function isType(root: vscode.DocumentSymbol, position: vscode.Position, label: string): 'baseType' | 'struct' | false {
     if (/^((float|fixed|int|half)[2-4]?)|sampler2D$/.test(label))
         return 'baseType';
     const stack: vscode.DocumentSymbol[] = [];
@@ -36,17 +49,6 @@ export function isType(root: vscode.DocumentSymbol, position: vscode.Position, l
 }
 
 /**
- * 获取指定括号对包含的所有文字
- * @param document
- * @param bracket
- * @returns
- */
-export function getDocumentText(document: vscode.TextDocument, bracket: BracketInfo) {
-    const range = new vscode.Range(document.positionAt(bracket.start), document.positionAt(bracket.end));
-    return document.getText(range);
-}
-
-/**
  * 获取所有成对的括号
  * @param text
  * @param start
@@ -54,18 +56,18 @@ export function getDocumentText(document: vscode.TextDocument, bracket: BracketI
  * @param brackets
  * @returns
  */
-export function getBrackets(text: string, start: number, root: BracketInfo, brackets: { key: '{' | '}' | '(' | ')', index: number }[]) {
+function getBrackets(text: string, start: number, root: BracketInfo, brackets: { key: '{' | '}' | '(' | ')', index: number }[]) {
     let index = start;
     for (; index < text.length; index++) {
         if (text[index] == '{') {
             brackets.push({ key: "{", index });
-            const current: BracketInfo = { start: index, end: text.length, bracketType: '{}', children: [] };
+            const current = new BracketInfo(root.document, index, '{}');
             root.children.push(current);
             index = getBrackets(text, index + 1, current, brackets);
         }
         else if (text[index] == '(') {
             brackets.push({ key: '(', index });
-            const current: BracketInfo = { start: index, end: text.length, bracketType: '()', children: [] };
+            const current = new BracketInfo(root.document, index, '()');
             root.children.push(current);
             index = getBrackets(text, index + 1, current, brackets);
         }
@@ -75,7 +77,7 @@ export function getBrackets(text: string, start: number, root: BracketInfo, brac
             const last = brackets.pop();
             if (last.key != '{')
                 break;
-            root.end = index + 1;
+            root.set_end(index + 1);
             return index;
         }
         else if (text[index] == ')') {
@@ -84,18 +86,18 @@ export function getBrackets(text: string, start: number, root: BracketInfo, brac
             const last = brackets.pop();
             if (last.key != '(')
                 break;
-            root.end = index + 1;
+            root.set_end(index + 1);
             return index;
         }
     }
     return index;
 }
 
-export function getDocumentSymbols(document: vscode.TextDocument): Thenable<vscode.DocumentSymbol[]> {
+function getDocumentSymbols(document: vscode.TextDocument): Thenable<vscode.DocumentSymbol[]> {
     return vscode.commands.executeCommand<vscode.DocumentSymbol[]>('vscode.executeDocumentSymbolProvider', document.uri);
 }
 
-export function findAllSymbols(symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] {
+function findAllSymbols(symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] {
     const result: vscode.DocumentSymbol[] = [];
     result.push(symbol);
     for (const child of symbol.children) {
@@ -104,7 +106,7 @@ export function findAllSymbols(symbol: vscode.DocumentSymbol): vscode.DocumentSy
     return result;
 }
 
-export function findSymbolsBySymbolKind(symbols: vscode.DocumentSymbol[], kinds: vscode.SymbolKind[]): vscode.DocumentSymbol[] {
+function findSymbolsBySymbolKind(symbols: vscode.DocumentSymbol[], kinds: vscode.SymbolKind[]): vscode.DocumentSymbol[] {
     const result: vscode.DocumentSymbol[] = [];
     for (const symbol of symbols) {
         if (kinds.includes(symbol.kind))
@@ -114,7 +116,7 @@ export function findSymbolsBySymbolKind(symbols: vscode.DocumentSymbol[], kinds:
     return result;
 }
 
-export function findSymbolsByName(symbols: vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] {
+function findSymbolsByName(symbols: vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] {
     const result: vscode.DocumentSymbol[] = [];
     for (const symbol of symbols) {
         if (names.indexOf(symbol.name) >= 0)
@@ -128,7 +130,7 @@ function symbolContainsPosition(symbol: vscode.DocumentSymbol, position: vscode.
     return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
 }
 
-export function getSymbolStack(symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] {
+function getSymbolStack(symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] {
     if (symbol == null)
         return [];
 
@@ -140,4 +142,24 @@ export function getSymbolStack(symbol: vscode.DocumentSymbol, position: vscode.P
             return [symbol, ...getSymbolStack(child, position)];
     }
     return [symbol];
+}
+
+const documentStructureUtils = {
+    getDocumentSymbols,
+    isType,
+    findAllSymbols,
+    getBrackets(document: vscode.TextDocument) {
+        const text = document.getText();
+        const rootBrackets = new BracketInfo(document, 0, null);
+        getBrackets(text, 0, rootBrackets, []);
+        return rootBrackets;
+    },
+    getSymbolStack,
+    findSymbolsBySymbolKind,
+    findSymbolsByName,
+}
+
+export {
+    BracketInfo,
+    documentStructureUtils,
 }

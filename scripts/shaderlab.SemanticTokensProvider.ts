@@ -1,11 +1,6 @@
 
 import * as vscode from 'vscode';
-import {
-    findAllSymbols,
-    findSymbolsBySymbolKind,
-    findSymbolsByName,
-    getDocumentSymbols,
-} from './shaderlab.DocumentStructure.js';
+import { documentStructureUtils } from './shaderlab.DocumentStructure.js';
 
 enum tokenType {
     type = 'type',          // 表示类型。
@@ -36,14 +31,14 @@ const tokenLegend = new vscode.SemanticTokensLegend(
 ]);
 
 function SemanticTokens_CGPROGRAM(document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbol: vscode.DocumentSymbol) {
-    const symbols = findAllSymbols(symbol);
+    const symbols = documentStructureUtils.findAllSymbols(symbol);
     SemanticTokens_Structs(document, tokensBuilder, symbols);
     SemanticTokens_Fields(document, tokensBuilder, symbols);
     SemanticTokens_Variables(document, tokensBuilder, symbols);
 }
 
 function SemanticTokens_Structs(document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) {
-    symbols = findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Struct]);
+    symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Struct]);
     for (const symbol of symbols) {
         tokensBuilder.push(document.getWordRangeAtPosition(symbol.range.start), 'macro');
         tokensBuilder.push(symbol.selectionRange, tokenType.struct);
@@ -51,7 +46,7 @@ function SemanticTokens_Structs(document: vscode.TextDocument, tokensBuilder: vs
 }
 
 function SemanticTokens_Variables(document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) {
-    symbols = findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Variable]);
+    symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Variable]);
     for (const symbol of symbols) {
         SemanticTokens_Type(document, tokensBuilder, symbol.range.start);
         tokensBuilder.push(symbol.selectionRange, tokenType.variable);
@@ -59,7 +54,7 @@ function SemanticTokens_Variables(document: vscode.TextDocument, tokensBuilder: 
 }
 
 function SemanticTokens_Fields(document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) {
-    symbols = findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Field]);
+    symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Field]);
     for (const symbol of symbols) {
         SemanticTokens_Type(document, tokensBuilder, symbol.range.start);
         tokensBuilder.push(symbol.selectionRange, tokenType.property);
@@ -87,12 +82,14 @@ function SemanticTokens_Type(
 // 定义语义标记提供程序
 class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
     provideDocumentSemanticTokens(document: vscode.TextDocument): vscode.ProviderResult<vscode.SemanticTokens> {
-        return getDocumentSymbols(document).then(symbols => {
-            if (symbols.length == 0)
-                return null;
-            const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
-            const cgScriptSymbols = findSymbolsByName(symbols, ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']);
-            for (const symbol of cgScriptSymbols) {
+        return documentStructureUtils
+            .getDocumentSymbols(document)
+            .then(symbols => {
+                if (symbols.length == 0)
+                    return null;
+                const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
+                const cgScriptSymbols = documentStructureUtils.findSymbolsByName(symbols, ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']);
+                for (const symbol of cgScriptSymbols) {
                 SemanticTokens_CGPROGRAM(document, tokensBuilder, symbol);
             }
             return tokensBuilder.build();

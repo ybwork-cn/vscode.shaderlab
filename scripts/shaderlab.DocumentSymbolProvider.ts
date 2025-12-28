@@ -1,9 +1,9 @@
 
 import * as vscode from 'vscode';
-import { BracketInfo, getBrackets, getDocumentText, isType } from './shaderlab.DocumentStructure.js';
+import { BracketInfo, documentStructureUtils } from './shaderlab.DocumentStructure.js';
 
 function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.DocumentSymbol, rangeIndex: BracketInfo) {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
     let match: RegExpExecArray;
 
     let regex_para = /(?<!\/\/.*)(\w+)\s+(\w+(?:\[\d*\])?)(\s*[=;])/g;
@@ -29,7 +29,7 @@ function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.Doc
             document.positionAt(rangeIndex.start + match.index + match_1_start),
             document.positionAt(rangeIndex.start + match.index + match_2_start + match[2].length));
         // 防止 return x;
-        if (isType(rootShaderSymbol, range.start, match[1])) {
+        if (documentStructureUtils.isType(rootShaderSymbol, range.start, match[1])) {
             const name = /^\w+/.exec(match[2])[0];
             let detail = match[1];
 
@@ -67,7 +67,7 @@ function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.Doc
             endPosition);
 
         // 防止 return x;
-        if (isType(rootShaderSymbol, range.start, match[1])) {
+        if (documentStructureUtils.isType(rootShaderSymbol, range.start, match[1])) {
             const name = /^\w+/.exec(match[2])[0];
             let detail = match[1];
 
@@ -82,7 +82,7 @@ function SemanticTokens_variable(document: vscode.TextDocument, root: vscode.Doc
 }
 
 function SemanticTokens_params(document: vscode.TextDocument, root: vscode.DocumentSymbol, rangeIndex: BracketInfo) {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
     let match: RegExpExecArray;
 
     const regex_para = /(out\s+)?(\w+)\s+(\w+)/mg;
@@ -101,7 +101,7 @@ function SemanticTokens_params(document: vscode.TextDocument, root: vscode.Docum
 }
 
 function SemanticTokens_Struct(document: vscode.TextDocument, root: vscode.DocumentSymbol, rangeIndex: BracketInfo) {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
     let match: RegExpExecArray;
 
     const regex_field = /(\w+)\s+(\S+)\s*:\s*(\w+).*?$/mg;
@@ -130,7 +130,7 @@ function SemanticTokens_Struct(document: vscode.TextDocument, root: vscode.Docum
 }
 
 function SemanticTokens_CGPROGRAM(document: vscode.TextDocument, root: vscode.DocumentSymbol, rangeIndex: BracketInfo) {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
     let match: RegExpExecArray;
 
     const regex_struct = /(?<!\/\/.*)(struct)\s*(\w+)\s*{/g;
@@ -173,7 +173,8 @@ function SemanticTokens_CGPROGRAM(document: vscode.TextDocument, root: vscode.Do
 
         if (match[3].length > 0) {
             const start = rangeIndex.start + match.index + match_3_start;
-            SemanticTokens_params(document, node, { start, end: start + match[3].length, children: rangeIndex.children });
+            const bracket = new BracketInfo(document, start, null);
+            SemanticTokens_params(document, node, bracket);
         }
 
         SemanticTokens_variable(document, node, bracket);
@@ -183,7 +184,7 @@ function SemanticTokens_CGPROGRAM(document: vscode.TextDocument, root: vscode.Do
 }
 
 function SemanticTokens_CG(document: vscode.TextDocument, root: vscode.DocumentSymbol, rangeIndex: BracketInfo) {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
 
     let matchStart = /CGPROGRAM|CGINCLUDE/ig.exec(text);
     let matchEnd = /ENDCG/ig.exec(text);
@@ -214,12 +215,15 @@ function SemanticTokens_CG(document: vscode.TextDocument, root: vscode.DocumentS
 
         const start = matchStart[0].length + matchStart.index + rangeIndex.start;
         const end = matchEnd.index + rangeIndex.start;
-        SemanticTokens_CGPROGRAM(document, node, { start, end, children: rangeIndex.children });
+        const bracket = new BracketInfo(document, start, null);
+        bracket.set_end(end);
+        bracket.children.push(...rangeIndex.children);
+        SemanticTokens_CGPROGRAM(document, node, bracket);
     }
 }
 
 function SemanticTokens_SubShader(document: vscode.TextDocument, root: vscode.DocumentSymbol, rangeIndex: BracketInfo) {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
     let match: RegExpExecArray;
     const regex = /(Pass)\s*{/ig;
     while (match = regex.exec(text)) {
@@ -242,7 +246,7 @@ function SemanticTokens_SubShader(document: vscode.TextDocument, root: vscode.Do
 }
 
 function SemanticTokens_Properties(document: vscode.TextDocument, root: vscode.DocumentSymbol, rangeIndex: BracketInfo) {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
     let match: RegExpExecArray;
     const regex = /(\w+)\s*\(".*?"\s*,\s*(\w+)\).*?$/mg;
     while (match = regex.exec(text)) {
@@ -260,7 +264,7 @@ function SemanticTokens_Properties(document: vscode.TextDocument, root: vscode.D
 }
 
 function SemanticTokens_Shader(document: vscode.TextDocument, root: vscode.DocumentSymbol, rangeIndex: BracketInfo) {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
     let match: RegExpExecArray;
     if (match = /(Properties)\s*{/ig.exec(text)) {
         const selectionRange = new vscode.Range(
@@ -299,7 +303,7 @@ function SemanticTokens_Shader(document: vscode.TextDocument, root: vscode.Docum
 
 let rootShaderSymbol: vscode.DocumentSymbol;
 function SemanticTokens_Root(document: vscode.TextDocument, rangeIndex: BracketInfo): vscode.DocumentSymbol {
-    const text = getDocumentText(document, rangeIndex);
+    const text = rangeIndex.text;
     let match: RegExpExecArray;
     if (match = /(Shader)\s*(".*?")\s*{/ig.exec(text)) {
         const selectionRange = new vscode.Range(
@@ -318,15 +322,8 @@ function SemanticTokens_Root(document: vscode.TextDocument, rangeIndex: BracketI
     return rootShaderSymbol;
 }
 
-function getDocumentStructure(document: vscode.TextDocument): vscode.DocumentSymbol {
-    const text = document.getText();
-    const brackets: BracketInfo = { start: 0, end: text.length, children: [] };
-    getBrackets(text, 0, brackets, []);
-    return SemanticTokens_Root(document, brackets);
-}
-
 /**
- * 定义文档符号
+ * 提供文档中所有符号信息
  * Provide symbol information for the given document.
  * @param document The document in which the command was invoked.
  * @param token A cancellation token.
@@ -334,7 +331,8 @@ function getDocumentStructure(document: vscode.TextDocument): vscode.DocumentSym
  * signaled by returning `undefined`, `null`, or an empty array.
  */
 function provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.SymbolInformation[] | vscode.DocumentSymbol[]> {
-    let documentStructure: vscode.DocumentSymbol = getDocumentStructure(document);
+    const rootBrackets = documentStructureUtils.getBrackets(document);
+    const documentStructure = SemanticTokens_Root(document, rootBrackets);
     return [documentStructure];
 }
 

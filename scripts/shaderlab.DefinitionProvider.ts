@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { getDocumentSymbols, getSymbolStack } from './shaderlab.DocumentStructure';
+import { documentStructureUtils } from './shaderlab.DocumentStructure';
 
 interface DocumentSymbolInfo {
     symbol: vscode.DocumentSymbol
@@ -9,7 +9,8 @@ interface DocumentSymbolInfo {
 }
 
 function getSymbolDefine(document: vscode.TextDocument, name: string, temp: DocumentSymbolInfo[]): vscode.ProviderResult<DocumentSymbolInfo[]> {
-    return getDocumentSymbols(document)
+    return documentStructureUtils
+        .getDocumentSymbols(document)
         .then(_symbols => {
             const result: DocumentSymbolInfo[] = [...temp];
             for (const symbol of _symbols) {
@@ -44,32 +45,34 @@ function getSymbolDefine(document: vscode.TextDocument, name: string, temp: Docu
  * signaled by returning `undefined` or `null`.
  */
 export function provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DefinitionLink[]> {
-    return getDocumentSymbols(document).then<vscode.LocationLink[]>(symbols => {
-        for (const symbol of symbols) {
-            const symbolStack = getSymbolStack(symbol, position);
-            const target = nextSymbol(document, symbolStack, position);
-            if (target != null)
-                return [target];
-        }
+    return documentStructureUtils
+        .getDocumentSymbols(document)
+        .then<vscode.LocationLink[]>(symbols => {
+            for (const symbol of symbols) {
+                const symbolStack = documentStructureUtils.getSymbolStack(symbol, position);
+                const target = nextSymbol(document, symbolStack, position);
+                if (target != null)
+                    return [target];
+            }
 
-        const path = vscode.workspace.getConfiguration().get<string>('Unity CGIncludes Path');
-        if (!fs.existsSync(path))
-            return null;
-        return vscode.workspace.openTextDocument(path + "/UnityCG.cginc")
-            .then(doc => {
-                return getSymbolDefine(doc, document.getText(document.getWordRangeAtPosition(position)), []);
-            })
-            .then<vscode.DefinitionLink[]>(symbolInfos => {
-                const result: vscode.DefinitionLink[] = [];
-                for (const symbolInfo of symbolInfos) {
-                    result.push({
-                        targetUri: symbolInfo.document.uri,
-                        targetRange: symbolInfo.symbol.range,
-                        targetSelectionRange: symbolInfo.symbol.selectionRange,
-                    });
-                }
-                return result;
-            });
+            const path = vscode.workspace.getConfiguration().get<string>('Unity CGIncludes Path');
+            if (!fs.existsSync(path))
+                return null;
+            return vscode.workspace.openTextDocument(path + "/UnityCG.cginc")
+                .then(doc => {
+                    return getSymbolDefine(doc, document.getText(document.getWordRangeAtPosition(position)), []);
+                })
+                .then<vscode.DefinitionLink[]>(symbolInfos => {
+                    const result: vscode.DefinitionLink[] = [];
+                    for (const symbolInfo of symbolInfos) {
+                        result.push({
+                            targetUri: symbolInfo.document.uri,
+                            targetRange: symbolInfo.symbol.range,
+                            targetSelectionRange: symbolInfo.symbol.selectionRange,
+                        });
+                    }
+                    return result;
+                });
     });
 }
 
