@@ -100,4 +100,10 @@ class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
     }
 }
 
-export { SemanticTokensProvider, tokenLegend };
+// 语义标记提供程序(关键字高亮)
+const documentSemanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider('shaderlab',
+    new SemanticTokensProvider(),
+    tokenLegend
+);
+
+export { documentSemanticTokensProvider };

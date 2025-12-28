@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 // 创建诊断集合
-export const diagnosticCollection = vscode
+const diagnosticCollection = vscode
     .languages
     .createDiagnosticCollection('ybwork-shaderlab');
 
@@ -9,7 +9,7 @@ export const diagnosticCollection = vscode
  * 报告指定文档的诊断信息
  * @param document 发生变化的文档
  */
-export function provideDiagnostics(document: vscode.TextDocument): void {
+function provideDiagnostics(document: vscode.TextDocument): void {
     // 仅处理 shaderlab 语言的文档
     if (document.languageId !== 'shaderlab')
         return;
@@ -31,3 +31,10 @@ export function provideDiagnostics(document: vscode.TextDocument): void {
     // 文件变化后，更新诊断集合，设置为新的诊断信息列表
     diagnosticCollection.set(document.uri, diagnostics);
 }
+
+// 注册一个文档打开/更改监听器
+const textChangedEvent = vscode.workspace.onDidChangeTextDocument(event => {
+    provideDiagnostics(event.document);
+});
+
+export { diagnosticCollection, textChangedEvent };

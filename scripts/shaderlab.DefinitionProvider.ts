@@ -99,3 +99,10 @@ function nextSymbol(document: vscode.TextDocument, symbolStack: vscode.DocumentS
     }
     return null;
 }
+
+// 转到定义工具
+const definitionProvider = vscode.languages.registerDefinitionProvider('shaderlab',
+    { provideDefinition }
+);
+
+export { definitionProvider };

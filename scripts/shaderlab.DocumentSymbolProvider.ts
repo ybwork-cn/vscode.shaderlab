@@ -338,4 +338,9 @@ function provideDocumentSymbols(document: vscode.TextDocument, token: vscode.Can
     return [documentStructure];
 }
 
-export { provideDocumentSymbols };
+// 定义文档符号工具
+const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('shaderlab',
+    { provideDocumentSymbols }
+);
+
+export { documentSymbolProvider };
