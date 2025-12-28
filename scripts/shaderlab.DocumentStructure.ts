@@ -148,11 +148,11 @@ const documentStructureUtils = {
     getDocumentSymbols,
     isType,
     findAllSymbols,
-    getBrackets(document: vscode.TextDocument) {
+    getRootBracket(document: vscode.TextDocument) {
         const text = document.getText();
-        const rootBrackets = new BracketInfo(document, 0, null);
-        getBrackets(text, 0, rootBrackets, []);
-        return rootBrackets;
+        const rootBracket = new BracketInfo(document, 0, null);
+        getBrackets(text, 0, rootBracket, []);
+        return rootBracket;
     },
     getSymbolStack,
     findSymbolsBySymbolKind,
