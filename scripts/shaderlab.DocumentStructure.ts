@@ -54,9 +54,9 @@ function isType(root: vscode.DocumentSymbol, position: vscode.Position, label: s
  * @param start
  * @param root
  * @param brackets
- * @returns
+ * @returns 结束位置
  */
-function getBrackets(text: string, start: number, root: BracketInfo, brackets: { key: '{' | '}' | '(' | ')', index: number }[]) {
+function getBrackets(text: string, start: number, root: BracketInfo, brackets: { key: '{' | '(', index: number }[]) {
     let index = start;
     for (; index < text.length; index++) {
         if (text[index] == '{') {
