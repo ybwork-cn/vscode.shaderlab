@@ -10,47 +10,44 @@ import {
 } from './shared.HlslBuiltins.js';
 
 /**
- * 从符号定义位置提取 /// 注释
- * 向上查找连续的 /// 注释行
+ * 从符号定义位置提取 // 注释
+ * 向上查找连续的 // 注释行
  */
 function extractDocComment(document: vscode.TextDocument, symbolStartLine: number): string | null {
     const comments: string[] = [];
     let lineNum = symbolStartLine - 1;
 
-    // 向上查找连续的 /// 注释行
+    // 向上查找连续的 // 注释行（不允许有空行，遇到空行结束）
     while (lineNum >= 0) {
-        const lineText = document.lineAt(lineNum).text.trim();
-        
-        // 检查是否是 /// 注释
-        if (lineText.startsWith('///')) {
-            // 提取注释内容（去掉 /// 前缀）
-            let commentText = lineText.substring(3).trim();
+        const rawLine = document.lineAt(lineNum).text;
+        const lineText = rawLine.trim();
+
+        // 单行注释 //
+        if (lineText.startsWith('//')) {
+            // 提取注释内容（去掉 // 前缀及前导空白）
+            const commentText = rawLine.replace(/^\s*\/\/\s?/, '').trim();
             comments.unshift(commentText);
             lineNum--;
+            continue;
         }
-        // 检查是否是空行（允许注释块之间有空行）
-        else if (lineText === '') {
-            // 检查上一行是否还有 /// 注释
-            if (lineNum > 0 && document.lineAt(lineNum - 1).text.trim().startsWith('///')) {
-                lineNum--;
-            } else {
-                break;
-            }
+
+        // 遇到空行则结束（不允许空行间隔）
+        if (lineText === '') {
+            break;
         }
-        // 检查是否是 /** */ 风格的注释
-        else if (lineText.endsWith('*/')) {
-            // 查找 /** 开始
-            let blockComment: string[] = [];
+
+        // 块注释 /** ... */（必须直接相邻）
+        if (lineText.endsWith('*/')) {
+            const blockCommentLines: string[] = [];
             while (lineNum >= 0) {
-                const blockLine = document.lineAt(lineNum).text;
-                blockComment.unshift(blockLine);
-                if (blockLine.includes('/**') || blockLine.includes('/*')) {
+                const blockLineRaw = document.lineAt(lineNum).text;
+                blockCommentLines.unshift(blockLineRaw);
+                if (blockLineRaw.includes('/**') || blockLineRaw.includes('/*')) {
                     break;
                 }
                 lineNum--;
             }
-            // 解析块注释
-            const fullComment = blockComment.join('\n');
+            const fullComment = blockCommentLines.join('\n');
             const cleanedComment = fullComment
                 .replace(/\/\*\*?/g, '')
                 .replace(/\*\//g, '')
@@ -63,9 +60,9 @@ function extractDocComment(document: vscode.TextDocument, symbolStartLine: numbe
             }
             break;
         }
-        else {
-            break;
-        }
+
+        // 其它非注释行，结束
+        break;
     }
 
     return comments.length > 0 ? comments.join('\n') : null;
