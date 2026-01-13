@@ -260,7 +260,9 @@ function SemanticTokens_Properties(rangeInfo: SemanticTokenRangeInfo, parentSymb
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
-    const regex = /(\w+)\s*\(".*?"\s*,\s*(\w+)\).*?$/mg;
+    // _MainTex ("Texture", 2D) = "white" {}
+    // _Radius ("Radius", Range(0,10)) = 1.0
+    const regex = /(\w+)\s*\(".*?"\s*,\s*(.+?)\)\s*(?:=\s*.*)$/mg;
     while (match = regex.exec(text)) {
         const selectionRange = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
