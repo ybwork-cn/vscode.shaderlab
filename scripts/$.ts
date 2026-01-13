@@ -1,6 +1,8 @@
 
-function replace(str: string, regex: RegExp, asyncFn: (v: string, ...others: string[]) => string) {
+const replace = (str: string, regex: RegExp, asyncFn: (v: string, ...others: string[]) => string) => {
     return str.replace(regex, asyncFn);
 }
 
-export { replace };
+const $ = { replace };
+
+export default $;

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as $ from './$.js';
+import $ from './$.js';
 import { documentStructureUtils } from './shaderlab.DocumentStructure.js';
 
 type FunctionDef = {

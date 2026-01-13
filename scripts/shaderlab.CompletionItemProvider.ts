@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as $ from './$.js';
+import $ from './$.js';
 
 function getDocumentSymbols(document: vscode.TextDocument) {
     return vscode.commands.executeCommand<vscode.DocumentSymbol[]>('vscode.executeDocumentSymbolProvider', document.uri);
