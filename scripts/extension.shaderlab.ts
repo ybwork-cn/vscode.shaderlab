@@ -55,6 +55,8 @@ function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(diagnosticCollection);
     // TODO:注册文档变化监听器
     // context.subscriptions.push(textChangedEvent);
+
+    console.log('shaderlab language support activated');
 }
 
 export { activate }
