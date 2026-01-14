@@ -87,7 +87,7 @@ class SymbolCache {
     }
 
     /**
-     * 在符号树中递归查找指定名称的符号
+     * 在符号树中递归查找指定名称的符号（返回第一个匹配）
      */
     findSymbolByName(symbols: vscode.DocumentSymbol[], name: string): vscode.DocumentSymbol | null {
         for (const symbol of symbols) {
@@ -100,6 +100,25 @@ class SymbolCache {
             }
         }
         return null;
+    }
+
+    /**
+     * 在符号树中递归查找所有同名符号（支持重载）
+     */
+    findAllSymbolsByName(symbols: vscode.DocumentSymbol[], name: string): vscode.DocumentSymbol[] {
+        const results: vscode.DocumentSymbol[] = [];
+        
+        const search = (syms: vscode.DocumentSymbol[]) => {
+            for (const sym of syms) {
+                if (sym.name === name) {
+                    results.push(sym);
+                }
+                search(sym.children);
+            }
+        };
+        
+        search(symbols);
+        return results;
     }
 
     /**
