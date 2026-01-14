@@ -7,6 +7,7 @@ import {
     findFunctionByName,
     createFunctionHover,
     HLSL_ALL_SEMANTICS,
+    HLSL_ALL_KEYWORDS,
 } from './shared.HlslBuiltins.js';
 
 /**
@@ -237,6 +238,11 @@ class HlslHoverProvider implements vscode.HoverProvider {
         }
         const word = document.getText(wordRange);
         if (!word) {
+            return null;
+        }
+
+        // 过滤所有 isHlslType
+        if (HLSL_ALL_KEYWORDS.includes(word)) {
             return null;
         }
 
