@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
 
-import { documentSemanticTokensProvider } from './shaderlab.SemanticTokensProvider.js';
-import { documentFormattingEditProvider } from './shaderlab.FormattingEditProvider.js';
-import { definitionProvider } from './shaderlab.DefinitionProvider.js';
-import { documentSymbolProvider } from './shaderlab.DocumentSymbolProvider.js';
-import { hoverProvider } from './shaderlab.HoverProvider.js';
-import { completionItemProvider } from './shaderlab.CompletionItemProvider.js';
+import { documentSemanticTokensProvider } from './shaderlab.SemanticTokensProvider';
+import { documentFormattingEditProvider } from './shaderlab.FormattingEditProvider';
+import { definitionProvider } from './shaderlab.DefinitionProvider';
+import { documentSymbolProvider } from './shaderlab.DocumentSymbolProvider';
+import { hoverProvider } from './shaderlab.HoverProvider';
+import { completionItemProvider } from './shaderlab.CompletionItemProvider';
 import {
     diagnosticCollection,
     textChangedEvent
-} from './shaderlab.diagnosticProvider.js';
+} from './shaderlab.diagnosticProvider';
 
 function activate(context: vscode.ExtensionContext) {
 

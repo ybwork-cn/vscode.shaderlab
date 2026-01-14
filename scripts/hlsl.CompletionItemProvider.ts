@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { symbolCache } from './shared.SymbolCache.js';
-import { parseIncludes } from './hlsl.DefinitionProvider.js';
-import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
+import { symbolCache } from './shared.SymbolCache';
+import { parseIncludes } from './hlsl.DefinitionProvider';
+import { resolveIncludePath } from './hlsl.DocumentLinkProvider';
 import {
     HLSL_ALL_TYPES,
     HLSL_SCALAR_TYPES,
@@ -22,7 +22,7 @@ import {
     createSemanticCompletionItem,
     HlslFunctionDef,
     findFunctionByName,
-} from './shared.HlslBuiltins.js';
+} from './shared.HlslBuiltins';
 
 /**
  * 缓存的自动完成项

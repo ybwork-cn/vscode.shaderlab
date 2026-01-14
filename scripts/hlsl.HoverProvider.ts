@@ -1,14 +1,15 @@
 import * as vscode from 'vscode';
-import { symbolCache } from './shared.SymbolCache.js';
-import { parseIncludes, findDefinitionInFileChain } from './hlsl.DefinitionProvider.js';
-import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
+import { symbolCache } from './shared.SymbolCache';
+import { parseIncludes, findDefinitionInFileChain } from './hlsl.DefinitionProvider';
+import { resolveIncludePath } from './hlsl.DocumentLinkProvider';
 import {
     HLSL_ALL_FUNCTIONS,
     findFunctionByName,
     createFunctionHover,
     HLSL_ALL_SEMANTICS,
     HLSL_ALL_KEYWORDS,
-} from './shared.HlslBuiltins.js';
+} from './shared.HlslBuiltins';
+import { isHlslKeyword } from './hlsl.utils';
 
 /**
  * 从符号定义位置提取 // 注释
@@ -231,8 +232,8 @@ class HlslHoverProvider implements vscode.HoverProvider {
             return null;
         }
 
-        // 获取光标下的单词
-        const wordRange = document.getWordRangeAtPosition(position);
+        // 获取光标下的单词（限制为标识符，避免带符号的范围）
+        const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z_][\w]*/);
         if (!wordRange) {
             return null;
         }
@@ -241,8 +242,8 @@ class HlslHoverProvider implements vscode.HoverProvider {
             return null;
         }
 
-        // 过滤所有 isHlslType
-        if (HLSL_ALL_KEYWORDS.includes(word)) {
+        // 过滤 HLSL 关键字/内置类型（大小写不敏感，并支持类型后缀）
+        if (isHlslKeyword(word)) {
             return null;
         }
 

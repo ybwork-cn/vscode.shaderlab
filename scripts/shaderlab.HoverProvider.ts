@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as $ from './$.js';
-import { documentStructureUtils } from './shaderlab.DocumentStructure.js';
+import * as $ from './$';
+import { documentStructureUtils } from './shaderlab.DocumentStructure';
 
 type FunctionDef = {
     text: string;

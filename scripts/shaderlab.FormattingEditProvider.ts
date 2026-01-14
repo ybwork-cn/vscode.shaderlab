@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as $ from './$.js';
+import * as $ from './$';
 
 type Line = {
     content: string;

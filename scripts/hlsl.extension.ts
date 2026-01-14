@@ -1,14 +1,14 @@
 
 import * as vscode from 'vscode';
-import { provideDocumentSymbols } from './hlsl.DocumentSymbolProvider.js';
-import { hlslDocumentLinkProvider } from './hlsl.DocumentLinkProvider.js';
-import { hlslFormattingEditProvider } from './hlsl.FormattingEditProvider.js';
-import { hlslDefinitionProvider } from './hlsl.DefinitionProvider.js';
-import { hlslCompletionItemProvider } from './hlsl.CompletionItemProvider.js';
-import { hlslHoverProvider } from './hlsl.HoverProvider.js';
-import { HlslSignatureHelpProvider } from './hlsl.SignatureHelpProvider.js';
-import { workspaceSymbolProvider } from './shared.WorkspaceSymbolProvider.js';
-import { symbolCache } from './shared.SymbolCache.js';
+import { provideDocumentSymbols } from './hlsl.DocumentSymbolProvider';
+import { hlslDocumentLinkProvider } from './hlsl.DocumentLinkProvider';
+import { hlslFormattingEditProvider } from './hlsl.FormattingEditProvider';
+import { hlslDefinitionProvider } from './hlsl.DefinitionProvider';
+import { hlslCompletionItemProvider } from './hlsl.CompletionItemProvider';
+import { hlslHoverProvider } from './hlsl.HoverProvider';
+import { HlslSignatureHelpProvider } from './hlsl.SignatureHelpProvider';
+import { workspaceSymbolProvider } from './shared.WorkspaceSymbolProvider';
+import { symbolCache } from './shared.SymbolCache';
 
 function activate(context: vscode.ExtensionContext) {
     // 注册文档符号提供程序

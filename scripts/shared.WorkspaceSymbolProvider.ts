@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { symbolCache } from './shared.SymbolCache.js';
+import { symbolCache } from './shared.SymbolCache';
 
 /**
  * 将 DocumentSymbol 转换为 SymbolInformation

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { symbolCache } from './shared.SymbolCache.js';
-import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
+import { symbolCache } from './shared.SymbolCache';
+import { resolveIncludePath } from './hlsl.DocumentLinkProvider';
 
 /**
  * 解析文档中的所有 #include 路径

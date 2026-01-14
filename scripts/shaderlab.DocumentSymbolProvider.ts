@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { BracketInfo, documentStructureUtils } from './shaderlab.DocumentStructure.js';
+import { BracketInfo, documentStructureUtils } from './shaderlab.DocumentStructure';
 
 interface SemanticTokenRangeInfo {
     document: vscode.TextDocument;

@@ -1,9 +1,9 @@
 
 import * as vscode from 'vscode';
-import { symbolCache } from './shared.SymbolCache.js';
-import { parseIncludes } from './hlsl.DefinitionProvider.js';
-import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
-import { HLSL_ALL_FUNCTIONS, findFunctionByName } from './shared.HlslBuiltins.js';
+import { symbolCache } from './shared.SymbolCache';
+import { parseIncludes } from './hlsl.DefinitionProvider';
+import { resolveIncludePath } from './hlsl.DocumentLinkProvider';
+import { HLSL_ALL_FUNCTIONS, findFunctionByName } from './shared.HlslBuiltins';
 
 /**
  * Helper to find all function symbols (including overloads) in the file or its includes

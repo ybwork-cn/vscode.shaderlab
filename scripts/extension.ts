@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as shaderlab from './shaderlab.extension.js';
-import * as hlsl from './hlsl.extension.js';
+import * as shaderlab from './shaderlab.extension';
+import * as hlsl from './hlsl.extension';
 
 function activate(context: vscode.ExtensionContext) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
