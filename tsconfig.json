@@ -2,7 +2,7 @@
     "compilerOptions": {
         "module": "CommonJS",
         "target": "ES2022",
-        "outDir": "./dist", // 输出目录
+        "outDir": "./dist",
         "inlineSourceMap": true,
         "inlineSources": true,
         "strict": false,

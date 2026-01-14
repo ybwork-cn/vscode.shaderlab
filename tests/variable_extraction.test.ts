@@ -37,9 +37,12 @@ export function getLocalVariables(textBefore: string): Array<{ type: string; nam
     return results;
 }
 
-// --- Simple self-test ---
-if (require.main === module) {
-    const sample = `
+import { describe, it, expect } from 'vitest';
+
+// --- Tests ---
+describe('getLocalVariables', () => {
+    it('extracts local variables in a block', () => {
+        const sample = `
 Varyings LitGBufferPassVertex(Attributes input)
 {
     Varyings output = (Varyings)0;
@@ -55,12 +58,16 @@ Varyings LitGBufferPassVertex(Attributes input)
     // already normalized from normal transform to WS.
     output.normalWS = normalInput.normalWS;
 `;
+        const vars = getLocalVariables(sample);
+        const names = vars.map(v => v.name);
+        expect(names).toContain('output');
+        expect(names).toContain('vertexInput');
+        expect(names).toContain('normalInput');
+    });
 
-    const vars = getLocalVariables(sample);
-    console.log('Found local vars:', vars);
-    // Expect at least these names to be found
-    assert(vars.some(v => v.name === 'output'));
-    assert(vars.some(v => v.name === 'vertexInput'));
-    assert(vars.some(v => v.name === 'normalInput'));
-    console.log('variable_extraction test passed');
-}
+    it('returns empty array when no block is present', () => {
+        const sample = 'function foo() {}';
+        const vars = getLocalVariables(sample);
+        expect(vars).toEqual([]);
+    });
+});

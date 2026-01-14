@@ -4,3 +4,4 @@ Release/
 readme.changelog.md
 # Ignore packaged extension files
 *.vsix
+.github
