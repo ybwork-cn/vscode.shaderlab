@@ -152,6 +152,8 @@ function SemanticTokens_CGPROGRAM(rangeInfo: SemanticTokenRangeInfo, parentSymbo
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
+        if (!bracket || bracket.end == null)
+            continue;
         const range = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(bracket.end));
@@ -173,6 +175,8 @@ function SemanticTokens_CGPROGRAM(rangeInfo: SemanticTokenRangeInfo, parentSymbo
 
         const end = bracketInfo.start + match.index + match[0].length - 1;
         const bracket = bracketInfo.children.find(item => item.start == end);
+        if (!bracket || bracket.end == null)
+            continue;
         const range = new vscode.Range(
             document.positionAt(bracketInfo.start + match.index),
             document.positionAt(bracket.end));
@@ -244,6 +248,8 @@ function SemanticTokens_SubShader(rangeInfo: SemanticTokenRangeInfo, parentSymbo
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
+        if (!bracket || bracket.end == null)
+            continue;
         const range = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(bracket.end));
@@ -288,14 +294,16 @@ function SemanticTokens_Shader(rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
-        const range = new vscode.Range(
-            document.positionAt(match.index + bracketInfo.start),
-            document.positionAt(bracket.end));
+        if (bracket && bracket.end != null) {
+            const range = new vscode.Range(
+                document.positionAt(match.index + bracketInfo.start),
+                document.positionAt(bracket.end));
 
-        const node = new vscode.DocumentSymbol('Properties', '', vscode.SymbolKind.Package, range, selectionRange);
-        parentSymbol.children.push(node);
+            const node = new vscode.DocumentSymbol('Properties', '', vscode.SymbolKind.Package, range, selectionRange);
+            parentSymbol.children.push(node);
 
-        SemanticTokens_Properties(rangeInfo, node, bracket);
+            SemanticTokens_Properties(rangeInfo, node, bracket);
+        }
     }
     const regex = /(SubShader)\s*{/ig;
     while (match = regex.exec(text)) {
@@ -305,6 +313,8 @@ function SemanticTokens_Shader(rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
+        if (!bracket || bracket.end == null)
+            continue;
         const range = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(bracket.end));
@@ -326,6 +336,8 @@ function SemanticTokens_Root(document: vscode.TextDocument, bracketInfo: Bracket
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
+        if (!bracket || bracket.end == null)
+            return null;
         const range = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(bracket.end));
