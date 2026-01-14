@@ -268,6 +268,28 @@ class HlslHoverProvider implements vscode.HoverProvider {
             const { symbol, document: symbolDoc, comment } = symbolInfo;
             const hoverMessage = new vscode.MarkdownString();
             
+            // 添加标题行 (优化显示)
+            let header = '';
+            switch (symbol.kind) {
+                case vscode.SymbolKind.Function:
+                case vscode.SymbolKind.Method:
+                    header = `$(symbol-function) **Function** \`${symbol.name}\``;
+                    break;
+                case vscode.SymbolKind.Struct:
+                    header = `$(symbol-structure) **Struct** \`${symbol.name}\``;
+                    break;
+                case vscode.SymbolKind.Variable:
+                case vscode.SymbolKind.Field:
+                    header = `$(symbol-variable) **Variable** \`${symbol.name}\``;
+                    break;
+                case vscode.SymbolKind.Constant:
+                    header = `$(symbol-constant) **Macro** \`${symbol.name}\``;
+                    break;
+                default:
+                    header = `$(symbol-misc) **${symbol.name}**`;
+            }
+            hoverMessage.appendMarkdown(`${header}\n\n`);
+
             // 获取定义文本
             const defText = getSymbolDefinitionText(symbolDoc, symbol);
             hoverMessage.appendCodeblock(defText, 'hlsl');
@@ -280,7 +302,7 @@ class HlslHoverProvider implements vscode.HoverProvider {
             // 如果定义来自其他文件，显示文件路径
             if (symbolDoc.uri.fsPath !== document.uri.fsPath) {
                 const relativePath = vscode.workspace.asRelativePath(symbolDoc.uri);
-                hoverMessage.appendMarkdown(`\n\n*Defined in: ${relativePath}*`);
+                hoverMessage.appendMarkdown(`\n\n*Defined in: [${relativePath}](${symbolDoc.uri})*`);
             }
             
             return new vscode.Hover(hoverMessage);
@@ -293,6 +315,29 @@ class HlslHoverProvider implements vscode.HoverProvider {
             const comment = extractDocComment(symbolDoc, workspaceResult.symbol.range.start.line);
             
             const hoverMessage = new vscode.MarkdownString();
+
+             // 添加标题行 (优化显示)
+             let header = '';
+             switch (workspaceResult.symbol.kind) {
+                 case vscode.SymbolKind.Function:
+                 case vscode.SymbolKind.Method:
+                     header = `$(symbol-function) **Function** \`${workspaceResult.symbol.name}\``;
+                     break;
+                 case vscode.SymbolKind.Struct:
+                     header = `$(symbol-structure) **Struct** \`${workspaceResult.symbol.name}\``;
+                     break;
+                 case vscode.SymbolKind.Variable:
+                 case vscode.SymbolKind.Field:
+                     header = `$(symbol-variable) **Variable** \`${workspaceResult.symbol.name}\``;
+                     break;
+                 case vscode.SymbolKind.Constant:
+                     header = `$(symbol-constant) **Macro** \`${workspaceResult.symbol.name}\``;
+                     break;
+                 default:
+                     header = `$(symbol-misc) **${workspaceResult.symbol.name}**`;
+             }
+             hoverMessage.appendMarkdown(`${header}\n\n`);
+
             const defText = getSymbolDefinitionText(symbolDoc, workspaceResult.symbol);
             hoverMessage.appendCodeblock(defText, 'hlsl');
             
@@ -301,7 +346,7 @@ class HlslHoverProvider implements vscode.HoverProvider {
             }
             
             const relativePath = vscode.workspace.asRelativePath(workspaceResult.uri);
-            hoverMessage.appendMarkdown(`\n\n*Defined in: ${relativePath}*`);
+            hoverMessage.appendMarkdown(`\n\n*Defined in: [${relativePath}](${workspaceResult.uri})*`);
             
             return new vscode.Hover(hoverMessage);
         }
