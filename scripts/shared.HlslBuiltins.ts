@@ -350,16 +350,13 @@ export function createFunctionCompletionItem(func: HlslFunctionDef): vscode.Comp
     item.detail = func.signature;
     item.documentation = new vscode.MarkdownString(func.description);
     
-    // Extract parameters for snippet
+    // Extract parameters; for functions with params, insert name( and trigger signature help instead of entering a snippet
     const paramsMatch = func.signature.match(/\(([^)]*)\)/);
     if (paramsMatch && paramsMatch[1].trim()) {
-        const params = paramsMatch[1].split(',').map((p, i) => {
-            const paramName = p.trim().split(/\s+/).pop()?.replace(/[\[\]]/g, '') || `param${i + 1}`;
-            return `\${${i + 1}:${paramName}}`;
-        });
-        item.insertText = new vscode.SnippetString(`${func.name}(${params.join(', ')})`);
+        item.insertText = `${func.name}(`;
+        item.command = { command: 'editor.action.triggerParameterHints', title: 'Trigger Signature Help' };
     } else {
-        item.insertText = new vscode.SnippetString(`${func.name}()`);
+        item.insertText = `${func.name}()`;
     }
     
     return item;

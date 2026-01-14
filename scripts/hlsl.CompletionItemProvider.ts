@@ -21,6 +21,7 @@ import {
     createKeywordCompletionItem,
     createSemanticCompletionItem,
     HlslFunctionDef,
+    findFunctionByName,
 } from './shared.HlslBuiltins.js';
 
 /**
@@ -326,6 +327,182 @@ function provideSwizzleCompletion(typeName: string): vscode.CompletionItem[] {
 }
 
 /**
+ * 扫描当前作用域的局部变量（简单正则实现）
+ */
+function getLocalVariables(document: vscode.TextDocument, position: vscode.Position): vscode.CompletionItem[] {
+    const textFull = document.getText();
+    const offset = document.offsetAt(position);
+    
+    // limit search to last 5000 chars to ensure performance and context
+    const startIndex = Math.max(0, offset - 5000);
+    const textContext = textFull.substring(startIndex, offset);
+
+    // Remove comments to avoid false positives and interference
+    // 1. Remove block comments /* ... */
+    let cleanedText = textContext.replace(/\/\*[\s\S]*?\*\//g, match => ' '.repeat(match.length));
+    // 2. Remove line comments // ... 
+    cleanedText = cleanedText.replace(/\/\/[^\n]*/g, match => ' '.repeat(match.length));
+
+    // Determine scope start (last '{' that isn't closed)
+    let openBraceIndex = -1;
+    let braceDepth = 0;
+    for (let i = cleanedText.length - 1; i >= 0; i--) {
+        const char = cleanedText[i];
+        if (char === '}') {
+            braceDepth++;
+        } else if (char === '{') {
+            if (braceDepth > 0) {
+                braceDepth--;
+            } else {
+                openBraceIndex = i;
+                break;
+            }
+        }
+    }
+
+    const searchScope = openBraceIndex !== -1 ? cleanedText.substring(openBraceIndex + 1) : cleanedText;
+
+    const items: vscode.CompletionItem[] = [];
+    const addedNames = new Set<string>();
+
+    // Regex for variable declaration: Type Name (= ...)?;
+    // improved to handle template types roughly: \b(\w+(?:<\s*[\w\s,]+\s*>)?)\s+(\w+)
+    const varRegex = /\b([a-zA-Z_]\w*(?:\s*<\s*[\w\s,]+\s*>)?)\s+([a-zA-Z_]\w*)(?:\s*\[[^\]]+\])?\s*(?=[=;,])/g;
+    
+    let match;
+    while ((match = varRegex.exec(searchScope)) !== null) {
+        const type = match[1];
+        const name = match[2];
+        
+        if (HLSL_ALL_KEYWORDS.includes(type) || type === 'return' || type === 'else' || type === 'if') continue;
+        if (addedNames.has(name)) continue;
+
+        const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Variable);
+        item.detail = `${type} ${name} (Local)`;
+        item.sortText = '00_' + name; 
+        items.push(item);
+        addedNames.add(name);
+    }
+
+    // Attempt to recover function parameters if we found a block start
+    if (openBraceIndex !== -1) {
+       // Look backwards from openBraceIndex for ')'
+       let paramEnd = openBraceIndex - 1;
+       while (paramEnd >= 0 && /\s/.test(cleanedText[paramEnd])) paramEnd--;
+       
+       if (paramEnd >= 0 && cleanedText[paramEnd] === ')') {
+           // We found a closing paren, likely function args or if (...)
+           // Scan back to opening '('
+           let pDepth = 1;
+           let pStart = paramEnd - 1;
+           while(pStart >= 0) {
+               if(cleanedText[pStart] === ')') pDepth++;
+               else if(cleanedText[pStart] === '(') {
+                   pDepth--;
+                   if(pDepth === 0) break;
+               }
+               pStart--;
+           }
+           
+           if(pStart >= 0) {
+               const paramStr = cleanedText.substring(pStart + 1, paramEnd);
+               // Split by comma (naive)
+               const params = paramStr.split(',');
+               for(const p of params) {
+                   // Clean up
+                   const pTrimmed = p.trim();
+                   // Match "Type Name" or "in/out Type Name"
+                   const pMatch = pTrimmed.match(/(?:(?:in|out|inout|uniform)\s+)?(\w+(?:<\s*[\w\s,]+\s*>)?)\s+(\w+)(?:\s*:\s*\w+)?/);
+                   if (pMatch) {
+                       const pType = pMatch[1];
+                       const pName = pMatch[2];
+                       if (!addedNames.has(pName) && !HLSL_ALL_KEYWORDS.includes(pType)) {
+                           const item = new vscode.CompletionItem(pName, vscode.CompletionItemKind.Variable);
+                           item.detail = `${pType} ${pName} (Param)`;
+                           item.sortText = '00_' + pName; 
+                           items.push(item);
+                           addedNames.add(pName);
+                       }
+                   }
+               }
+           }
+       }
+    }
+
+    return items;
+}
+
+/**
+ * 递归收集所有包含文件的符号
+ */
+async function collectIncludeSymbols(
+    document: vscode.TextDocument, 
+    items: vscode.CompletionItem[],
+    visited: Set<string> = new Set()
+): Promise<void> {
+    const includedFiles = parseIncludes(document);
+    for (const includePath of includedFiles) {
+        const uri = resolveIncludePath(document, includePath);
+        if (uri && !visited.has(uri.fsPath)) {
+            visited.add(uri.fsPath);
+            try {
+                // 读取符号
+                const symbols = await symbolCache.getSymbolsByUri(uri);
+                const flatSymbols = symbolCache.flattenSymbols(symbols);
+                for (const symbol of flatSymbols) {
+                    let kind = vscode.CompletionItemKind.Variable;
+                    let sortPrefix = 'b_'; // 包含文件的符号优先级略低
+                    
+                    if (symbol.kind === vscode.SymbolKind.Function || symbol.kind === vscode.SymbolKind.Method) {
+                        kind = vscode.CompletionItemKind.Function;
+                    } else if (symbol.kind === vscode.SymbolKind.Struct) {
+                        kind = vscode.CompletionItemKind.Struct;
+                    } else if (symbol.kind === vscode.SymbolKind.Constant) {
+                        kind = vscode.CompletionItemKind.Constant;
+                    }
+
+                    const item = new vscode.CompletionItem(symbol.name, kind);
+
+                    if (kind === vscode.CompletionItemKind.Function) {
+                        const params = (symbol.children || []).filter(c => c.kind === vscode.SymbolKind.Variable);
+                        const paramLabels = params.map(p => p.name || (p.detail || 'param')).join(', ');
+                        const signatureLabel = (typeof symbol.detail === 'string' && symbol.detail.includes('('))
+                            ? symbol.detail
+                            : `${symbol.name}(${paramLabels})`;
+
+                        item.detail = signatureLabel;
+                        const doc = new vscode.MarkdownString();
+                        doc.appendCodeblock(signatureLabel, 'hlsl');
+                        doc.appendMarkdown(`\n\n*Defined in: ${vscode.workspace.asRelativePath(uri)}*`);
+                        item.documentation = doc;
+
+                        if (params.length > 0) {
+                            // Insert name( and trigger signature help instead of entering snippet mode
+                            item.insertText = `${symbol.name}(`;
+                            item.command = { command: 'editor.action.triggerParameterHints', title: 'Trigger Signature Help' };
+                        } else {
+                            item.insertText = `${symbol.name}()`;
+                        }
+                    } else {
+                        item.detail = symbol.detail ? symbol.detail : `${vscode.workspace.asRelativePath(uri)}`;
+                    }
+
+                    item.sortText = sortPrefix + symbol.name;
+                    items.push(item);
+                }
+
+                // 递归
+                const includeDoc = await vscode.workspace.openTextDocument(uri);
+                await collectIncludeSymbols(includeDoc, items, visited);
+
+            } catch (e) {
+                // ignore
+            }
+        }
+    }
+}
+
+/**
  * 检查是否在语义位置（: 后面）
  */
 function isInSemanticPosition(document: vscode.TextDocument, position: vscode.Position): boolean {
@@ -422,16 +599,19 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
         // 5. 提供通用的自动完成
         const items: vscode.CompletionItem[] = [];
 
-        // 添加类型
+        // 5.1 本地局部变量分析（优先）
+        items.push(...getLocalVariables(document, position));
+
+        // 5.2 添加类型
         items.push(...getTypeCompletionItems());
 
-        // 添加关键字
+        // 5.3 添加关键字
         items.push(...getKeywordCompletionItems());
 
-        // 添加函数
+        // 5.4 添加函数
         items.push(...getFunctionCompletionItems());
 
-        // 如果是 compute shader，添加 numthreads 代码片段
+        // 5.5 Compute Shader Snippets
         if (isComputeShader(document)) {
             const numthreadsSnippet = new vscode.CompletionItem('numthreads', vscode.CompletionItemKind.Snippet);
             numthreadsSnippet.insertText = new vscode.SnippetString('[numthreads(${1:8}, ${2:8}, ${3:1})]');
@@ -453,7 +633,7 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
             items.push(kernelSnippet);
         }
 
-        // 添加当前文档中的符号
+        // 5.6 添加当前文档中的符号
         const documentSymbols = await symbolCache.getSymbols(document);
         for (const symbol of symbolCache.flattenSymbols(documentSymbols)) {
             let kind = vscode.CompletionItemKind.Variable;
@@ -466,10 +646,38 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
             }
 
             const item = new vscode.CompletionItem(symbol.name, kind);
-            item.detail = symbol.detail;
-            item.sortText = 'a_' + symbol.name; // 用户定义的符号稍后显示
+
+            // If it's a function, synthesize a signature label and snippet, otherwise fallback to detail
+            if (kind === vscode.CompletionItemKind.Function) {
+                const params = (symbol.children || []).filter(c => c.kind === vscode.SymbolKind.Variable);
+                const paramLabels = params.map(p => p.name || (p.detail || 'param')).join(', ');
+                const signatureLabel = (typeof symbol.detail === 'string' && symbol.detail.includes('('))
+                    ? symbol.detail
+                    : `${symbol.name}(${paramLabels})`;
+
+                item.detail = signatureLabel;
+                const doc = new vscode.MarkdownString();
+                doc.appendCodeblock(signatureLabel, 'hlsl');
+                doc.appendMarkdown(`\n\n*Defined in: ${vscode.workspace.asRelativePath(document.uri)}*`);
+                item.documentation = doc;
+
+                // Insert name( for parameter entry and trigger signature help; avoid entering snippet mode
+                if (params.length > 0) {
+                    item.insertText = `${symbol.name}(`;
+                    item.command = { command: 'editor.action.triggerParameterHints', title: 'Trigger Signature Help' };
+                } else {
+                    item.insertText = `${symbol.name}()`;
+                }
+            } else {
+                item.detail = symbol.detail;
+            }
+
+            item.sortText = 'a_' + symbol.name; // 用户定义的符号
             items.push(item);
         }
+
+        // 5.7 添加 #include 文件中的符号 (深度搜索)
+        await collectIncludeSymbols(document, items);
 
         return items;
     }
@@ -478,6 +686,41 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
         item: vscode.CompletionItem,
         token: vscode.CancellationToken
     ): vscode.ProviderResult<vscode.CompletionItem> {
+        try {
+            // Only enhance function completions
+            if (item.kind === vscode.CompletionItemKind.Function) {
+                const name = typeof item.label === 'string' ? item.label : (item.label as any)?.label || '';
+                // Prefer built-in signature when available
+                const builtin = findFunctionByName(name);
+
+                const doc = new vscode.MarkdownString();
+
+                if (builtin) {
+                    doc.appendCodeblock(builtin.signature, 'hlsl');
+                    if (builtin.description) {
+                        doc.appendMarkdown('\n\n' + builtin.description);
+                    }
+                } else if (item.detail) {
+                    // Show synthesized signature (detail usually holds it)
+                    doc.appendCodeblock(String(item.detail), 'hlsl');
+
+                    // If item.documentation is a string, append it; if Markdown, we avoid reading internal content
+                    if (typeof item.documentation === 'string') {
+                        doc.appendMarkdown('\n\n' + item.documentation);
+                    } else if (item.documentation instanceof vscode.MarkdownString) {
+                        // We can't read existing markdown content, but we can add a small note
+                        doc.appendMarkdown('\n\n*More details available in documentation*');
+                    }
+                }
+
+                // Overwrite documentation with full signature block
+                if (doc.value.length > 0) {
+                    item.documentation = doc;
+                }
+            }
+        } catch (e) {
+            // If anything goes wrong, fall back to default behavior
+        }
         return item;
     }
 }
