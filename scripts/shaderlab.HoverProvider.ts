@@ -7,7 +7,7 @@ type FunctionDef = {
     desc?: string;
 }
 
-function getTrimedText(document: vscode.TextDocument, range: vscode.Range): string {
+const getTrimedText = (document: vscode.TextDocument, range: vscode.Range): string => {
     let text = document.getText(range);
     text = $.replace(text, /^\r\n/, (v) => '\n');
     const lines = text.split('\n');
@@ -16,9 +16,9 @@ function getTrimedText(document: vscode.TextDocument, range: vscode.Range): stri
         lines[i] = lines[i].slice(indent);
     }
     return lines.join('\n');
-}
+};
 
-function provideFunctionHover(functionName: string): vscode.ProviderResult<vscode.Hover> {
+const provideFunctionHover = (functionName: string): vscode.ProviderResult<vscode.Hover> => {
     const getFunctionDef = (): FunctionDef => {
         switch (functionName) {
             case 'clip': return {
@@ -135,7 +135,7 @@ function provideFunctionHover(functionName: string): vscode.ProviderResult<vscod
             };
             default: return null;
         }
-    }
+    };
     const functionDef = getFunctionDef();
     if (functionDef) {
         const hoverMessage = new vscode.MarkdownString();
@@ -149,7 +149,7 @@ function provideFunctionHover(functionName: string): vscode.ProviderResult<vscod
         // 创建一个 MarkdownString 来格式化悬停内容
         return new vscode.Hover(hoverMessage);
     }
-}
+};
 
 class HoverProvider implements vscode.HoverProvider {
     provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {

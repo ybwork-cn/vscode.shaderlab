@@ -9,7 +9,7 @@ import { formatCode } from './shared.CodeFormatter.js';
  * @return A set of text edits or a thenable that resolves to such. The lack of a result can be
  * signaled by returning `undefined`, `null`, or an empty array.
  */
-function provideDocumentFormattingEdits(document: vscode.TextDocument, options: vscode.FormattingOptions, token: vscode.CancellationToken): vscode.ProviderResult<vscode.TextEdit[]> {
+const provideDocumentFormattingEdits = (document: vscode.TextDocument, options: vscode.FormattingOptions, token: vscode.CancellationToken): vscode.ProviderResult<vscode.TextEdit[]> => {
     const fullRange = new vscode.Range(
         document.positionAt(0),
         document.positionAt(document.getText().length)
@@ -19,7 +19,7 @@ function provideDocumentFormattingEdits(document: vscode.TextDocument, options: 
     const edit = new vscode.TextEdit(fullRange, newText);
 
     return [edit];
-}
+};
 
 // 格式化工具
 const documentFormattingEditProvider = vscode.languages.registerDocumentFormattingEditProvider('shaderlab',

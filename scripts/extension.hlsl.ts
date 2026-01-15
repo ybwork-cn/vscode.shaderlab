@@ -1,9 +1,8 @@
-
 import * as vscode from 'vscode';
 import { documentSymbolProvider } from './hlsl.DocumentSymbolProvider.js';
 
-function activate(context: vscode.ExtensionContext) {
-    // 注册所有 HLSL Provider
+const activate = (context: vscode.ExtensionContext) => {
+    // 注册清理逻辑
     context.subscriptions.push(documentSymbolProvider);
     console.log('HLSL language support activated');
 }

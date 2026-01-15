@@ -28,7 +28,7 @@ class BracketInfo {
  * @param label
  * @returns
  */
-function isType(root: vscode.DocumentSymbol, position: vscode.Position, label: string): 'baseType' | 'struct' | false {
+const isType = (root: vscode.DocumentSymbol, position: vscode.Position, label: string): 'baseType' | 'struct' | false => {
     if (/^((float|fixed|int|half)[2-4]?)|sampler2D$/.test(label))
         return 'baseType';
     const stack: vscode.DocumentSymbol[] = [];
@@ -56,7 +56,7 @@ function isType(root: vscode.DocumentSymbol, position: vscode.Position, label: s
  * @param brackets
  * @returns 结束位置
  */
-function getBrackets(text: string, start: number, root: BracketInfo, brackets: { key: '{' | '(', index: number }[]) {
+const getBrackets = (text: string, start: number, root: BracketInfo, brackets: { key: '{' | '(', index: number }[]): number => {
     let index = start;
     for (; index < text.length; index++) {
         if (text[index] == '{') {
@@ -93,11 +93,11 @@ function getBrackets(text: string, start: number, root: BracketInfo, brackets: {
     return index;
 }
 
-function getDocumentSymbols(document: vscode.TextDocument): Thenable<vscode.DocumentSymbol[]> {
+const getDocumentSymbols = (document: vscode.TextDocument): Thenable<vscode.DocumentSymbol[]> => {
     return vscode.commands.executeCommand<vscode.DocumentSymbol[]>('vscode.executeDocumentSymbolProvider', document.uri);
 }
 
-function findAllSymbols(symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] {
+const findAllSymbols = (symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] => {
     const result: vscode.DocumentSymbol[] = [];
     result.push(symbol);
     for (const child of symbol.children) {
@@ -106,7 +106,7 @@ function findAllSymbols(symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] 
     return result;
 }
 
-function findSymbolsBySymbolKind(symbols: vscode.DocumentSymbol[], kinds: vscode.SymbolKind[]): vscode.DocumentSymbol[] {
+const findSymbolsBySymbolKind = (symbols: vscode.DocumentSymbol[], kinds: vscode.SymbolKind[]): vscode.DocumentSymbol[] => {
     const result: vscode.DocumentSymbol[] = [];
     for (const symbol of symbols) {
         if (kinds.includes(symbol.kind))
@@ -116,7 +116,7 @@ function findSymbolsBySymbolKind(symbols: vscode.DocumentSymbol[], kinds: vscode
     return result;
 }
 
-function findSymbolsByName(symbols: vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] {
+const findSymbolsByName = (symbols: vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] => {
     const result: vscode.DocumentSymbol[] = [];
     for (const symbol of symbols) {
         if (names.indexOf(symbol.name) >= 0)
@@ -126,11 +126,11 @@ function findSymbolsByName(symbols: vscode.DocumentSymbol[], names: string[]): v
     return result;
 }
 
-function symbolContainsPosition(symbol: vscode.DocumentSymbol, position: vscode.Position): boolean {
+const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
     return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
 }
 
-function getSymbolStack(symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] {
+const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] => {
     if (symbol == null)
         return [];
 

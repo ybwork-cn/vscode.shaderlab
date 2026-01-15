@@ -8,7 +8,7 @@ interface DocumentSymbolInfo {
     document: vscode.TextDocument
 }
 
-function getSymbolDefine(document: vscode.TextDocument, name: string, temp: DocumentSymbolInfo[]): vscode.ProviderResult<DocumentSymbolInfo[]> {
+const getSymbolDefine = (document: vscode.TextDocument, name: string, temp: DocumentSymbolInfo[]): vscode.ProviderResult<DocumentSymbolInfo[]> => {
     return documentStructureUtils
         .getDocumentSymbols(document)
         .then(_symbols => {
@@ -44,7 +44,7 @@ function getSymbolDefine(document: vscode.TextDocument, name: string, temp: Docu
  * @return A definition or a thenable that resolves to such. The lack of a result can be
  * signaled by returning `undefined` or `null`.
  */
-export function provideDefinition(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DefinitionLink[]> {
+const provideDefinition = (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DefinitionLink[]> => {
     return documentStructureUtils
         .getDocumentSymbols(document)
         .then<vscode.LocationLink[]>(symbols => {
@@ -76,7 +76,7 @@ export function provideDefinition(document: vscode.TextDocument, position: vscod
     });
 }
 
-function nextSymbol(document: vscode.TextDocument, symbolStack: vscode.DocumentSymbol[], position: vscode.Position): vscode.DefinitionLink {
+const nextSymbol = (document: vscode.TextDocument, symbolStack: vscode.DocumentSymbol[], position: vscode.Position): vscode.DefinitionLink => {
     // 当前光标下的单词
     const word = document.getText(document.getWordRangeAtPosition(position));
     // 倒序，由内而外查找定义

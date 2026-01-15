@@ -7,7 +7,7 @@ interface SemanticTokenRangeInfo {
     rootSymbol: vscode.DocumentSymbol;
 }
 
-function SemanticTokens_variable(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) {
+const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     const { document, rootSymbol } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -85,9 +85,9 @@ function SemanticTokens_variable(rangeInfo: SemanticTokenRangeInfo, parentSymbol
             parentSymbol.children.push(node);
         }
     }
-}
+};
 
-function SemanticTokens_params(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) {
+const SemanticTokens_params = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -105,9 +105,9 @@ function SemanticTokens_params(rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
         const node = new vscode.DocumentSymbol(match[3], match[2], vscode.SymbolKind.Variable, range, selectionRange);
         parentSymbol.children.push(node);
     }
-}
+};
 
-function SemanticTokens_Struct(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) {
+const SemanticTokens_Struct = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -135,9 +135,9 @@ function SemanticTokens_Struct(rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
         const node = new vscode.DocumentSymbol(name, detail, vscode.SymbolKind.Field, range, selectionRange);
         parentSymbol.children.push(node);
     }
-}
+};
 
-function SemanticTokens_CGPROGRAM(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) {
+const SemanticTokens_CGPROGRAM = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -190,9 +190,9 @@ function SemanticTokens_CGPROGRAM(rangeInfo: SemanticTokenRangeInfo, parentSymbo
     }
 
     SemanticTokens_variable(rangeInfo, parentSymbol, bracketInfo);
-}
+};
 
-function SemanticTokens_CG(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) {
+const SemanticTokens_CG = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     const { document } = rangeInfo;
     const text = bracketInfo.text;
 
@@ -230,9 +230,9 @@ function SemanticTokens_CG(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vsco
         bracket.children.push(...bracketInfo.children);
         SemanticTokens_CGPROGRAM(rangeInfo, node, bracket);
     }
-}
+};
 
-function SemanticTokens_SubShader(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) {
+const SemanticTokens_SubShader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -254,9 +254,9 @@ function SemanticTokens_SubShader(rangeInfo: SemanticTokenRangeInfo, parentSymbo
         SemanticTokens_CG(rangeInfo, node, bracket);
     }
     SemanticTokens_CG(rangeInfo, parentSymbol, bracketInfo);
-}
+};
 
-function SemanticTokens_Properties(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) {
+const SemanticTokens_Properties = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -275,9 +275,9 @@ function SemanticTokens_Properties(rangeInfo: SemanticTokenRangeInfo, parentSymb
         const node = new vscode.DocumentSymbol(match[1], match[2], vscode.SymbolKind.Property, range, selectionRange);
         parentSymbol.children.push(node);
     }
-}
+};
 
-function SemanticTokens_Shader(rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) {
+const SemanticTokens_Shader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -314,9 +314,9 @@ function SemanticTokens_Shader(rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
 
         SemanticTokens_SubShader(rangeInfo, node, bracket);
     }
-}
+};
 
-function SemanticTokens_Root(document: vscode.TextDocument, bracketInfo: BracketInfo): vscode.DocumentSymbol {
+const SemanticTokens_Root = (document: vscode.TextDocument, bracketInfo: BracketInfo): vscode.DocumentSymbol => {
     const text = bracketInfo.text;
     let match: RegExpExecArray;
     if (match = /(Shader)\s*(".*?")\s*{/ig.exec(text)) {
@@ -335,7 +335,7 @@ function SemanticTokens_Root(document: vscode.TextDocument, bracketInfo: Bracket
         return rootSymbol;
     }
     return null;
-}
+};
 
 // 定义文档符号工具
 const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('shaderlab', {
