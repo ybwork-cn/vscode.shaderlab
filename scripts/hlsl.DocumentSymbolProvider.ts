@@ -36,6 +36,75 @@ function isHLSLType(typeName: string): boolean {
 }
 
 /**
+ * 找到匹配的右大括号位置
+ * @param text 文本内容
+ * @param startPos 起始位置（左大括号的位置）
+ * @returns 匹配的右大括号位置，如果未找到返回 -1
+ */
+function findMatchingBrace(text: string, startPos: number): number {
+    let depth = 1;
+    let inString = false;
+    let inChar = false;
+    let inLineComment = false;
+    let inBlockComment = false;
+
+    for (let i = startPos + 1; i < text.length; i++) {
+        const char = text[i];
+        const prevChar = i > 0 ? text[i - 1] : '';
+
+        // 处理行注释
+        if (!inString && !inChar && !inBlockComment && char === '/' && text[i + 1] === '/') {
+            inLineComment = true;
+            continue;
+        }
+        if (inLineComment && char === '\n') {
+            inLineComment = false;
+            continue;
+        }
+
+        // 处理块注释
+        if (!inString && !inChar && !inLineComment && char === '/' && text[i + 1] === '*') {
+            inBlockComment = true;
+            i++;
+            continue;
+        }
+        if (inBlockComment && char === '*' && text[i + 1] === '/') {
+            inBlockComment = false;
+            i++;
+            continue;
+        }
+
+        // 跳过注释内的字符
+        if (inLineComment || inBlockComment) continue;
+
+        // 处理字符串
+        if (char === '"' && prevChar !== '\\') {
+            inString = !inString;
+            continue;
+        }
+        if (char === "'" && prevChar !== '\\') {
+            inChar = !inChar;
+            continue;
+        }
+
+        // 跳过字符串内的字符
+        if (inString || inChar) continue;
+
+        // 统计大括号深度
+        if (char === '{') {
+            depth++;
+        } else if (char === '}') {
+            depth--;
+            if (depth === 0) {
+                return i;
+            }
+        }
+    }
+
+    return -1; // 未找到匹配的大括号
+}
+
+/**
  * 创建 DocumentSymbol
  */
 function createSymbol(
@@ -142,7 +211,7 @@ function parseHLSLSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[
         symbols.push(cbufferSymbol);
     }
 
-    // 3. 解析函数定义（改进版：支持更多参数修饰符）
+    // 3. 解析函数定义（改进版：支持更多参数修饰符，并解析函数体内的局部变量）
     const regex_function = /\b(\w+)\s+(\w+)\s*\(\s*([^)]*)\s*\)(?:\s*:\s*(\w+))?\s*\{/g;
     while ((match = regex_function.exec(text)) !== null) {
         const returnType = match[1];
@@ -158,10 +227,16 @@ function parseHLSLSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[
         let detail = returnType;
         if (semantic) detail += ` : ${semantic}`;
 
+        // 找到函数体的范围（匹配大括号）
+        const funcBodyStart = match.index + match[0].length - 1; // '{' 的位置
+        const funcBodyEnd = findMatchingBrace(text, funcBodyStart);
+        const funcBody = funcBodyEnd > funcBodyStart ? text.substring(funcBodyStart + 1, funcBodyEnd) : '';
+
         const nameOffset = match[0].indexOf(funcName);
         const funcSymbol = createSymbol(
             document, funcName, detail, vscode.SymbolKind.Function,
-            match.index, match[0].length - 1, nameOffset, funcName.length
+            match.index, funcBodyEnd > funcBodyStart ? funcBodyEnd - match.index + 1 : match[0].length,
+            nameOffset, funcName.length
         );
 
         // 解析函数参数
@@ -189,6 +264,30 @@ function parseHLSLSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[
                     funcSymbol.children.push(paramSymbol);
                 }
                 paramOffset += paramPart.length + 1;
+            }
+        }
+
+        // 解析函数体内的局部变量声明
+        if (funcBody) {
+            const localVarRegex = /\b(\w+)\s+(\w+)(?:\s*=\s*[^;]+)?\s*;/g;
+            let localVarMatch: RegExpExecArray | null;
+
+            while ((localVarMatch = localVarRegex.exec(funcBody)) !== null) {
+                const varType = localVarMatch[1];
+                const varName = localVarMatch[2];
+
+                // 排除控制流关键字
+                if (['if', 'for', 'while', 'switch', 'return', 'break', 'continue', 'discard'].includes(varType)) continue;
+                
+                // 只保留已知的 HLSL 类型或自定义类型（首字母大写）
+                if (!isHLSLType(varType) && !/^[A-Z]/.test(varType)) continue;
+
+                const varSymbol = createSymbol(
+                    document, varName, varType, vscode.SymbolKind.Variable,
+                    funcBodyStart + 1 + localVarMatch.index, localVarMatch[0].length,
+                    localVarMatch[0].indexOf(varName), varName.length
+                );
+                funcSymbol.children.push(varSymbol);
             }
         }
 
