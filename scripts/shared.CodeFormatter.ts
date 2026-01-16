@@ -1,4 +1,5 @@
 import $ from './$.js';
+import * as vscode from 'vscode';
 
 type Line = {
     content: string;
@@ -134,13 +135,22 @@ const ResetTabs = (lines: Line[], tabSize: number): string => {
     return text;
 }
 
-const formatCode = (sourceText: string, tabSize: number): string => {
+const provideDocumentFormattingEdits = (document: vscode.TextDocument, options: vscode.FormattingOptions, token: vscode.CancellationToken): vscode.ProviderResult<vscode.TextEdit[]> => {
+    const sourceText = document.getText();
+    const fullRange = new vscode.Range(
+        document.positionAt(0),
+        document.positionAt(sourceText.length)
+    );
+
     const text = $.replace(sourceText, /\r\n/g, () => '\n');
 
     let lines: Line[] = text
         .replaceAll(/\r/g, '')
         .split('\n')
         .map(splitLineAndComment);
+
+    if (token.isCancellationRequested)
+        return null;
 
     replaceByLine(lines, /(\s*{\s*)/gm, (v, v1) => v.replace(v1, '{'));
     replaceByLine(lines, /(\s*}\s*)/gm, (v, v1) => v.replace(v1, '}'));
@@ -153,13 +163,23 @@ const formatCode = (sourceText: string, tabSize: number): string => {
     replaceByLine(lines, /(?<!{)(?<=.)(})/gm, (v, v1) => v.replace(v1, '\n}'));
     replaceByLine(lines, /(})(?!;).+/gm, (v, v1) => v.replace(v1, '}\n'));
 
+    if (token.isCancellationRequested)
+        return null;
+
     for (let index = 0; index < lines.length; index++) {
         formatLine(lines[index]);
+        if (token.isCancellationRequested)
+            return null;
     }
 
-    return ResetTabs(lines, tabSize);
+    const newText = ResetTabs(lines, options.tabSize);
+    if (token.isCancellationRequested)
+        return null;
+
+    const textEdit = new vscode.TextEdit(fullRange, newText);
+    return [textEdit];
 }
 
 export {
-    formatCode
+    provideDocumentFormattingEdits
 }
