@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { documentStructureUtils } from './shaderlab.DocumentStructure';
+import { documentStructureUtils } from './shared.DocumentStructure';
 
 interface DocumentSymbolInfo {
     symbol: vscode.DocumentSymbol

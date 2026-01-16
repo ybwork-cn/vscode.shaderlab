@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import $ from './$.js';
-import { documentStructureUtils } from './shaderlab.DocumentStructure.js';
+import { documentStructureUtils } from './shared.DocumentStructure.js';
 
 type FunctionDef = {
     text: string;
@@ -158,6 +158,9 @@ class HoverProvider implements vscode.HoverProvider {
             .executeCommand<vscode.DefinitionLink[]>('vscode.executeDefinitionProvider', document.uri, position)
             .then<vscode.Hover>(definitions => {
                 for (const def of definitions) {
+                    if (token.isCancellationRequested)
+                        return null;
+
                     const hoverMessage = new vscode.MarkdownString();
                     hoverMessage.isTrusted = false; // 默认值，明确写出以示清晰
                     hoverMessage.supportHtml = false; // 确保不支持HTML，以防止安全问题

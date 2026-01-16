@@ -1,19 +1,24 @@
 
 import * as vscode from 'vscode';
-import { BracketInfo, documentStructureUtils } from './shaderlab.DocumentStructure.js';
+import { BracketInfo, documentStructureUtils } from './shared.DocumentStructure.js';
 
 interface SemanticTokenRangeInfo {
     document: vscode.TextDocument;
+    token: vscode.CancellationToken;
     rootSymbol: vscode.DocumentSymbol;
 }
 
 const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
     const { document, rootSymbol } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
 
     let regex_para = /(?<!\/\/.*)(\w+)\s+(\w+(?:\[\d*\])?)(\s*[=;])/g;
     while ((match = regex_para.exec(text))) {
+        if (rangeInfo.token.isCancellationRequested)
+            return;
         const startPosition = document.positionAt(match.index + bracketInfo.start);
         let _exit = false;
         for (const child of parentSymbol.children) {
@@ -50,6 +55,8 @@ const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol
 
     regex_para = /(?<!\/\/.*)(\w+)\s+(\w+(?:\[\d+\])?)\s*;/g;
     while ((match = regex_para.exec(text))) {
+        if (rangeInfo.token.isCancellationRequested)
+            return;
         const startPosition = document.positionAt(match.index + bracketInfo.start);
         let _exit = false;
         for (const child of parentSymbol.children) {
@@ -88,12 +95,16 @@ const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol
 };
 
 const SemanticTokens_params = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
 
     const regex_para = /(out\s+)?(\w+)\s+(\w+)/mg;
     while ((match = regex_para.exec(text))) {
+        if (rangeInfo.token.isCancellationRequested)
+            return;
         const match_2_start = match[0].indexOf(match[2]);
         const match_3_start = match[0].indexOf(match[3], match_2_start + match[2].length);
         const selectionRange = new vscode.Range(
@@ -108,12 +119,16 @@ const SemanticTokens_params = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
 };
 
 const SemanticTokens_Struct = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
 
     const regex_field = /(\w+)\s+(\S+)\s*:\s*(\w+).*?$/mg;
     while ((match = regex_field.exec(text))) {
+        if (rangeInfo.token.isCancellationRequested)
+            return;
         const match_1_start = match[0].indexOf(match[1]);
         const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
         const match_3_start = match[0].indexOf(match[3], match_2_start + match[2].length);
@@ -138,12 +153,16 @@ const SemanticTokens_Struct = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
 };
 
 const SemanticTokens_CGPROGRAM = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
 
     const regex_struct = /(?<!\/\/.*)(struct)\s*(\w+)\s*{/g;
     while (match = regex_struct.exec(text)) {
+        if (rangeInfo.token.isCancellationRequested)
+            return;
         const match_1_start = match[0].indexOf(match[1]);
         const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
         const selectionRange = new vscode.Range(
@@ -164,6 +183,8 @@ const SemanticTokens_CGPROGRAM = (rangeInfo: SemanticTokenRangeInfo, parentSymbo
 
     const regex_function = /(?<!\/\/.*)(\w+)\s+(\w+)\s*\((.*?)\)(?:\s*:\s*(\w+))?\s*{/g;
     while (match = regex_function.exec(text)) {
+        if (rangeInfo.token.isCancellationRequested)
+            return;
         const match_1_start = match[0].indexOf(match[1]);
         const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
         const match_3_start = match[0].indexOf(match[3], match_2_start + match[2].length);
@@ -193,6 +214,8 @@ const SemanticTokens_CGPROGRAM = (rangeInfo: SemanticTokenRangeInfo, parentSymbo
 };
 
 const SemanticTokens_CG = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
     const { document } = rangeInfo;
     const text = bracketInfo.text;
 
@@ -233,6 +256,8 @@ const SemanticTokens_CG = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vsco
 };
 
 const SemanticTokens_SubShader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -257,6 +282,8 @@ const SemanticTokens_SubShader = (rangeInfo: SemanticTokenRangeInfo, parentSymbo
 };
 
 const SemanticTokens_Properties = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -278,6 +305,8 @@ const SemanticTokens_Properties = (rangeInfo: SemanticTokenRangeInfo, parentSymb
 };
 
 const SemanticTokens_Shader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
@@ -299,6 +328,8 @@ const SemanticTokens_Shader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
     }
     const regex = /(SubShader)\s*{/ig;
     while (match = regex.exec(text)) {
+        if (rangeInfo.token.isCancellationRequested)
+            return;
         const selectionRange = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(match.index + match[1].length + bracketInfo.start));
@@ -316,7 +347,9 @@ const SemanticTokens_Shader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
     }
 };
 
-const SemanticTokens_Root = (document: vscode.TextDocument, bracketInfo: BracketInfo): vscode.DocumentSymbol => {
+const SemanticTokens_Root = (document: vscode.TextDocument, bracketInfo: BracketInfo, token: vscode.CancellationToken): vscode.DocumentSymbol => {
+    if (token.isCancellationRequested)
+        return null;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
     if (match = /(Shader)\s*(".*?")\s*{/ig.exec(text)) {
@@ -331,7 +364,7 @@ const SemanticTokens_Root = (document: vscode.TextDocument, bracketInfo: Bracket
             document.positionAt(bracket.end));
 
         const rootSymbol = new vscode.DocumentSymbol('Shader', match[2], vscode.SymbolKind.File, range, selectionRange);
-        SemanticTokens_Shader({ document, rootSymbol }, rootSymbol, bracket);
+        SemanticTokens_Shader({ document, token, rootSymbol }, rootSymbol, bracket);
         return rootSymbol;
     }
     return null;
@@ -346,11 +379,10 @@ const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('
      * @param token A cancellation token.
      * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
      * signaled by returning `undefined`, `null`, or an empty array.
-     */
-    // TODO: 链式传递CancellationToken
+    */
     provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.SymbolInformation[] | vscode.DocumentSymbol[]> {
-        const rootBracket = documentStructureUtils.getRootBracket(document);
-        const documentStructure = SemanticTokens_Root(document, rootBracket);
+        const rootBracket = documentStructureUtils.getRootBracket(document, token);
+        const documentStructure = SemanticTokens_Root(document, rootBracket, token);
         return [documentStructure];
     }
 });

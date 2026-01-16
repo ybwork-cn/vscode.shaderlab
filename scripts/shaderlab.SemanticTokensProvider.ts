@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { documentStructureUtils } from './shaderlab.DocumentStructure.js';
+import { documentStructureUtils } from './shared.DocumentStructure.js';
 
 enum tokenType {
     type = 'type',          // 表示类型。

@@ -56,20 +56,24 @@ const isType = (root: vscode.DocumentSymbol, position: vscode.Position, label: s
  * @param brackets
  * @returns 结束位置
  */
-const getBrackets = (text: string, start: number, root: BracketInfo, brackets: { key: '{' | '(', index: number }[]): number => {
+const getBrackets = (text: string, start: number, root: BracketInfo, brackets: { key: '{' | '(', index: number }[], token: vscode.CancellationToken): number => {
     let index = start;
     for (; index < text.length; index++) {
+        // 请求取消，立即返回
+        if (token.isCancellationRequested)
+            return index;
+
         if (text[index] == '{') {
             brackets.push({ key: "{", index });
             const current = new BracketInfo(root.document, index, '{}');
             root.children.push(current);
-            index = getBrackets(text, index + 1, current, brackets);
+            index = getBrackets(text, index + 1, current, brackets, token);
         }
         else if (text[index] == '(') {
             brackets.push({ key: '(', index });
             const current = new BracketInfo(root.document, index, '()');
             root.children.push(current);
-            index = getBrackets(text, index + 1, current, brackets);
+            index = getBrackets(text, index + 1, current, brackets, token);
         }
         else if (text[index] == '}') {
             if (brackets.length == 0)
@@ -148,10 +152,10 @@ const documentStructureUtils = {
     getDocumentSymbols,
     isType,
     findAllSymbols,
-    getRootBracket(document: vscode.TextDocument) {
+    getRootBracket(document: vscode.TextDocument, token: vscode.CancellationToken): BracketInfo {
         const text = document.getText();
         const rootBracket = new BracketInfo(document, 0, null);
-        getBrackets(text, 0, rootBracket, []);
+        getBrackets(text, 0, rootBracket, [], token);
         return rootBracket;
     },
     getSymbolStack,
