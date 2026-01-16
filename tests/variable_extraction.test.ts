@@ -1,41 +1,5 @@
 import * as assert from 'assert';
-
-/**
- * Extract local variable declarations inside the current block (simple heuristic used by completion provider)
- */
-export function getLocalVariables(textBefore: string): Array<{ type: string; name: string }> {
-    // limit to last block (naive)
-    let depth = 0;
-    let blockStart = -1;
-
-    for (let i = textBefore.length - 1; i >= 0; i--) {
-        const char = textBefore[i];
-        if (char === '}') {
-            depth++;
-        } else if (char === '{') {
-            if (depth > 0) {
-                depth--;
-            } else {
-                blockStart = i;
-                break;
-            }
-        }
-    }
-
-    const results: Array<{ type: string; name: string }> = [];
-
-    if (blockStart !== -1) {
-        const blockText = textBefore.substring(blockStart + 1);
-        const varRegex = /\b([a-zA-Z_]\w*)\s+([a-zA-Z_]\w*)(?:\s*\[[^\]]+\])?\s*(?:=|;|,|\))/g;
-        let match: RegExpExecArray | null;
-        while ((match = varRegex.exec(blockText)) !== null) {
-            const [, type, name] = match;
-            results.push({ type, name });
-        }
-    }
-
-    return results;
-}
+import { getLocalVariables } from './helpers';
 
 import { describe, it, expect } from 'vitest';
 
