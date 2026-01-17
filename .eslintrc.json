@@ -14,7 +14,7 @@
     "plugins": [
         "@typescript-eslint"
     ],
-	"rules": {
+    "rules": {
 		"no-const-assign": "warn",
         "no-this-before-super": "warn",
 		"no-unreachable": "warn",
@@ -38,10 +38,10 @@
                 "SwitchCase": 1
             }
         ],
-        // 换行符：强行\r\n
+        // 换行符：强行\n
         "linebreak-style": [
             "error",
-            "windows"
+            "unix"
         ],
         // 圈复杂度：不超过15
         "complexity": [
