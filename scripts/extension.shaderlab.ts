@@ -6,10 +6,6 @@ import { definitionProvider } from './shaderlab.DefinitionProvider.js';
 import { documentSymbolProvider } from './shaderlab.DocumentSymbolProvider.js';
 import { hoverProvider } from './shaderlab.HoverProvider.js';
 import { completionItemProvider } from './shaderlab.CompletionItemProvider.js';
-import {
-    diagnosticCollection,
-    textChangedEvent
-} from './shaderlab.diagnosticProvider.js';
 
 const activate = (context: vscode.ExtensionContext) => {
 
@@ -52,10 +48,6 @@ const activate = (context: vscode.ExtensionContext) => {
     context.subscriptions.push(activateCommand);
     // 注册格式化命令
     context.subscriptions.push(formatCommand);
-    // 注册诊断集合监听器
-    context.subscriptions.push(diagnosticCollection);
-    // 注册文档变化监听器
-    context.subscriptions.push(textChangedEvent);
 
     console.log('shaderlab language support activated');
 }
