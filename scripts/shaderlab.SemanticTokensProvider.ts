@@ -90,10 +90,10 @@ class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
                 const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
                 const cgScriptSymbols = documentStructureUtils.findSymbolsByName(symbols, ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']);
                 for (const symbol of cgScriptSymbols) {
-                SemanticTokens_CGPROGRAM(document, tokensBuilder, symbol);
-            }
-            return tokensBuilder.build();
-        });
+                    SemanticTokens_CGPROGRAM(document, tokensBuilder, symbol);
+                }
+                return tokensBuilder.build();
+            });
     }
 }
 

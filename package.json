@@ -59,7 +59,10 @@
             {
                 "id": "hlsl",
                 "extensions": [
-                    ".cginc"
+                    ".cginc",
+                    ".hlsl",
+                    ".hlsli",
+                    ".compute"
                 ]
             }
         ],
@@ -68,6 +71,11 @@
                 "language": "shaderlab",
                 "scopeName": "source.shaderlab",
                 "path": "./syntaxes/shaderlab.tmLanguage.json"
+            },
+            {
+                "language": "hlsl",
+                "scopeName": "source.hlsl",
+                "path": "./syntaxes/hlsl.tmLanguage.json"
             }
         ],
         "configuration": [
@@ -76,7 +84,30 @@
                 "properties": {
                     "Unity CGIncludes Path": {
                         "type": "string",
-                        "description": "Unity的CGIncludes文件夹路径"
+                        "description": "Unity的CGIncludes文件夹路径（如：C:/Program Files/Unity/Hub/Editor/2022.3.0f1/Editor/Data/CGIncludes）",
+                        "deprecationMessage": "请使用 ybwork-shaderlab.cgIncludesPath 代替"
+                    },
+                    "ybwork-shaderlab.cgIncludesPath": {
+                        "type": "string",
+                        "description": "Unity 内置 Shader 的 CGIncludes 文件夹路径（如：C:/Program Files/Unity/Hub/Editor/2022.3.0f1/Editor/Data/CGIncludes）"
+                    },
+                    "ybwork-shaderlab.unityProjectPath": {
+                        "type": "string",
+                        "description": "Unity 项目根目录路径（包含 Assets、Packages、Library 文件夹的目录）。如果工作区已包含 Unity 项目，可以不配置此项。"
+                    },
+                    "ybwork-shaderlab.packageMappings": {
+                        "type": "object",
+                        "default": {},
+                        "description": "Unity Package 路径映射。用于将 Packages/xxx 格式的 include 路径映射到实际文件系统路径。",
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "examples": [
+                            {
+                                "com.unity.render-pipelines.core": "D:/UnityProjects/MyProject/Library/PackageCache/com.unity.render-pipelines.core@14.0.8",
+                                "com.unity.render-pipelines.universal": "D:/UnityProjects/MyProject/Library/PackageCache/com.unity.render-pipelines.universal@14.0.8"
+                            }
+                        ]
                     }
                 }
             }
@@ -84,7 +115,9 @@
     },
     "scripts": {
         "tsc": "tsc",
-        "build": "tsc && vsce package"
+        "compile": "tsc -p .",
+        "watch": "tsc -w -p .",
+        "build": "npm run compile && vsce package"
     },
     "devDependencies": {
         "@types/node": "^20.4.5",

@@ -73,7 +73,7 @@ const provideDefinition = (document: vscode.TextDocument, position: vscode.Posit
                     }
                     return result;
                 });
-    });
+        });
 }
 
 const nextSymbol = (document: vscode.TextDocument, symbolStack: vscode.DocumentSymbol[], position: vscode.Position): vscode.DefinitionLink => {
