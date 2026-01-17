@@ -24,27 +24,20 @@ const provideWorkspaceSymbols = async (
     );
 
     for (const file of files) {
-        if (token.isCancellationRequested) {
+        if (token.isCancellationRequested) 
             break;
-        }
 
         try {
             const cached = await symbolCache.getCachedSymbolsByUri(file);
-            for (const symbol of cached.flattenedSymbols) {
-                if (token.isCancellationRequested)
-                    break;
-
-                // 名称不匹配则跳过
-                // TODO: 模糊查询增加缓存，迁移到 CachedSymbols 类中
-                if (!symbol.name.toLowerCase().includes(lowerQuery))
-                    continue;
-                results.push(new vscode.SymbolInformation(
+            const symbolInfos = cached
+                .querySymbols(lowerQuery)
+                .map(symbol => new vscode.SymbolInformation(
                     symbol.name,
                     symbol.kind,
                     symbol.name,
                     new vscode.Location(file, symbol.selectionRange)
                 ));
-            }
+            results.push(...symbolInfos);
         } catch (e) {
             console.error(`Failed to get symbols from: ${file.fsPath}`, e);
         }

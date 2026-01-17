@@ -7,6 +7,10 @@ class CachedSymbols {
     readonly flattenedSymbols: readonly vscode.DocumentSymbol[];
 
     private symbolMap: Map<string, vscode.DocumentSymbol> = new Map();
+    /**
+     * 模糊查询的缓存
+     */
+    private queryMap: Map<string, vscode.DocumentSymbol[]> = new Map();
 
     constructor(document: vscode.TextDocument, symbols: vscode.DocumentSymbol[]) {
         this.version = document.version;
@@ -17,13 +21,30 @@ class CachedSymbols {
 
     // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
     public findSymbol(name: string): vscode.DocumentSymbol | undefined {
-        const symbol = this.symbolMap.get(name);
-        if (symbol)
-            return symbol;
+        const cached = this.symbolMap.get(name);
+        if (cached)
+            return cached;
 
-        const newSymbol = this.flattenedSymbols.find(sym => sym.name === name);
-        this.symbolMap.set(name, newSymbol);
-        return newSymbol;
+        const symbol = this.flattenedSymbols.find(sym => sym.name === name);
+        this.symbolMap.set(name, symbol);
+        return symbol;
+    }
+
+    /**
+     * 模糊查询
+     * @param lowerQueryName 包含的字符串
+     */
+    public querySymbols(lowerQueryName: string): vscode.DocumentSymbol[] {
+        const cached = this.queryMap.get(lowerQueryName);
+        if (cached)
+            return cached;
+
+        const symbols = this.flattenedSymbols.filter(symbol => {
+            const name = symbol.name.toLowerCase();
+            return name.includes(lowerQueryName);
+        });
+        this.queryMap.set(lowerQueryName, symbols);
+        return symbols;
     }
 
     /**
