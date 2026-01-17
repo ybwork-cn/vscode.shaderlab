@@ -267,20 +267,27 @@ const clearPackageCache = (): void => {
     lastUnityProjectPath = null;
 }
 
-// 注册 DocumentLinkProvider
-const hlslDocumentLinkProvider = vscode.languages.registerDocumentLinkProvider(
-    ['hlsl', 'shaderlab'],
-    {
-        provideDocumentLinks,
-        resolveDocumentLink
-    }
-);
+/**
+ * 注册 DocumentLinkProvider
+ * @param context 
+ */
+const registerDocumentLinkProvider = (context: vscode.ExtensionContext) => {
+    const hlslDocumentLinkProvider = vscode.languages.registerDocumentLinkProvider(
+        ['hlsl', 'shaderlab'],
+        {
+            provideDocumentLinks,
+            resolveDocumentLink
+        }
+    );
+    // 监听配置变化，清除缓存
+    const onDidChangeConfiguration = vscode.workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('ybwork-shaderlab')) {
+            clearPackageCache();
+        }
+    });
 
-// 监听配置变化，清除缓存
-vscode.workspace.onDidChangeConfiguration(e => {
-    if (e.affectsConfiguration('ybwork-shaderlab')) {
-        clearPackageCache();
-    }
-});
+    context.subscriptions.push(hlslDocumentLinkProvider);
+    context.subscriptions.push(onDidChangeConfiguration);
+}
 
-export { hlslDocumentLinkProvider, resolveIncludePath };
+export { registerDocumentLinkProvider, resolveIncludePath };

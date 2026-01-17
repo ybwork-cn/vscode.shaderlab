@@ -313,10 +313,17 @@ class HlslHoverProvider implements vscode.HoverProvider {
     }
 }
 
-// 注册 HLSL Hover Provider
-const hlslHoverProvider = vscode.languages.registerHoverProvider(
-    'hlsl',
-    new HlslHoverProvider()
-);
+/**
+ * 注册 HLSL Hover Provider
+ * @param context 
+ */
+const registerHoverProvider = (context: vscode.ExtensionContext) => {
+    const hlslHoverProvider = vscode.languages.registerHoverProvider(
+        'hlsl',
+        new HlslHoverProvider()
+    );
 
-export { hlslHoverProvider };
+    context.subscriptions.push(hlslHoverProvider);
+}
+
+export { registerHoverProvider }

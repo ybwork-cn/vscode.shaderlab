@@ -103,9 +103,14 @@ const nextSymbol = (document: vscode.TextDocument, symbolStack: vscode.DocumentS
     return null;
 }
 
-// 转到定义工具
-const definitionProvider = vscode.languages.registerDefinitionProvider('shaderlab',
-    { provideDefinition }
-);
+/**
+ * 转到定义工具
+ */
+const registerDefinitionProvider = (context: vscode.ExtensionContext) => {
+    const provider = vscode.languages.registerDefinitionProvider('shaderlab',
+        { provideDefinition }
+    );
+    context.subscriptions.push(provider);
+}
 
-export { definitionProvider };
+export { registerDefinitionProvider };

@@ -76,9 +76,9 @@ const findDefinitionInFileChain = async (
 const findDefinitionInUnityIncludes = async (word: string): Promise<vscode.DefinitionLink | null> => {
     // 优先使用新配置，兼容旧配置
     const config = vscode.workspace.getConfiguration('ybwork-shaderlab');
-    const cgIncludesPath = config.get<string>('cgIncludesPath') 
+    const cgIncludesPath = config.get<string>('cgIncludesPath')
         || vscode.workspace.getConfiguration().get<string>('Unity CGIncludes Path');
-    
+
     if (!cgIncludesPath || !fs.existsSync(cgIncludesPath)) {
         return null;
     }
@@ -204,9 +204,16 @@ const provideDefinition = async (
     return null;
 }
 
-// 注册 HLSL Definition Provider
-const hlslDefinitionProvider = vscode.languages.registerDefinitionProvider('hlsl',
-    { provideDefinition }
-);
+/**
+ * 注册 HLSL Definition Provider
+ * @param context 
+ */
+const registerDefinitionProvider = (context: vscode.ExtensionContext) => {
+    const hlslDefinitionProvider = vscode.languages.registerDefinitionProvider('hlsl',
+        { provideDefinition }
+    );
 
-export { hlslDefinitionProvider, findDefinitionInFileChain, parseIncludes };
+    context.subscriptions.push(hlslDefinitionProvider);
+}
+
+export { registerDefinitionProvider, findDefinitionInFileChain, parseIncludes };

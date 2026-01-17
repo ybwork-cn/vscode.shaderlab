@@ -43,10 +43,16 @@ const provideCompletionItems = (document: vscode.TextDocument, position: vscode.
     return [];
 }
 
-// 代码完成工具
-const completionItemProvider = vscode.languages.registerCompletionItemProvider('shaderlab', {
-    provideCompletionItems,
-    resolveCompletionItem: (item, token) => null
-}, '.');
+/**
+ * 代码完成工具
+ * @param context 
+ */
+const registerCompletionItemProvider = (context: vscode.ExtensionContext): void => {
+    const provider = vscode.languages.registerCompletionItemProvider('shaderlab', {
+        provideCompletionItems,
+        resolveCompletionItem: (item, token) => null
+    }, '.');
+    context.subscriptions.push(provider);
+}
 
-export { completionItemProvider };
+export { registerCompletionItemProvider };

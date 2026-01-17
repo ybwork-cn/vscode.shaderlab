@@ -1,23 +1,30 @@
 import * as vscode from 'vscode';
-import { documentSymbolProvider } from './hlsl.DocumentSymbolProvider.js';
-import { hlslDocumentLinkProvider } from './hlsl.DocumentLinkProvider.js';
-import { documentFormattingEditProvider } from './hlsl.FormattingEditProvider.js';
-import { hlslDefinitionProvider } from './hlsl.DefinitionProvider.js';
-import { hlslCompletionItemProvider } from './hlsl.CompletionItemProvider.js';
-import { hlslHoverProvider } from './hlsl.HoverProvider.js';
-import { workspaceSymbolProvider } from './shared.WorkspaceSymbolProvider.js';
-import { symbolCache } from './shared.SymbolCache.js';
+import { registerDocumentSymbolProvider } from './hlsl.DocumentSymbolProvider.js';
+import { registerDocumentLinkProvider } from './hlsl.DocumentLinkProvider.js';
+import { registerDocumentFormattingEditProvider } from './hlsl.FormattingEditProvider.js';
+import { registerDefinitionProvider } from './hlsl.DefinitionProvider.js';
+import { registerCompletionItemProvider } from './hlsl.CompletionItemProvider.js';
+import { registerHoverProvider } from './hlsl.HoverProvider.js';
+import { registerWorkspaceSymbolProvider } from './shared.WorkspaceSymbolProvider.js';
+import { registerSymbolCache } from './shared.SymbolCache.js';
 
 const activate = (context: vscode.ExtensionContext) => {
-    // 注册清理逻辑
-    // context.subscriptions.push(documentSymbolProvider);
-    // context.subscriptions.push(hlslDocumentLinkProvider);      // #include 跳转
-    context.subscriptions.push(documentFormattingEditProvider);// 格式化
-    // context.subscriptions.push(hlslDefinitionProvider);        // 定义跳转
-    // context.subscriptions.push(hlslCompletionItemProvider);    // 自动完成
-    // context.subscriptions.push(hlslHoverProvider);             // 悬停提示
-    // context.subscriptions.push(workspaceSymbolProvider);       // 工作区符号搜索
-    // context.subscriptions.push(symbolCache);
+    // // 符号提供
+    // registerDocumentSymbolProvider(context);
+    // // #include 跳转
+    // registerDocumentLinkProvider(context);
+    // 格式化
+    registerDocumentFormattingEditProvider(context);
+    // // 定义跳转
+    // registerDefinitionProvider(context);
+    // // 自动完成
+    // registerCompletionItemProvider(context);
+    // // 悬停提示
+    // registerHoverProvider(context);
+    // // 工作区符号搜索
+    // registerWorkspaceSymbolProvider(context);
+    // // 符号缓存
+    // registerSymbolCache(context);                      
 
     console.log('HLSL language support activated');
 }

@@ -71,37 +71,11 @@ interface SymbolLocation {
  */
 class SymbolCache {
     private cache = new Map<string, CachedSymbols>();
-    private watcher: vscode.FileSystemWatcher;
-    private disposables: vscode.Disposable[] = [];
+    private _actived: boolean = false;
+    public get actived(): boolean { return this._actived; }
 
-    constructor() {
-        // 监听 shader 相关文件变化
-        this.watcher = vscode.workspace.createFileSystemWatcher('**/*.{shader,cginc,hlsl,hlsli,compute}');
-        this.watcher.onDidChange(uri => this.invalidate(uri));
-        this.watcher.onDidDelete(uri => this.cache.delete(uri.fsPath));
-        this.watcher.onDidCreate(uri => this.invalidate(uri));
-        this.disposables.push(this.watcher);
-
-        // 监听文档编辑事件
-        this.disposables.push(
-            vscode.workspace.onDidChangeTextDocument(e => {
-                if (this.isShaderFile(e.document.uri)) {
-                    this.invalidate(e.document.uri);
-                }
-            })
-        );
-    }
-
-    /**
-     * 判断是否为 shader 相关文件
-     */
-    private isShaderFile(uri: vscode.Uri): boolean {
-        const ext = uri.fsPath.toLowerCase();
-        return ext.endsWith('.shader') || 
-               ext.endsWith('.cginc') || 
-               ext.endsWith('.hlsl') || 
-               ext.endsWith('.hlsli') ||
-               ext.endsWith('.compute');
+    public active(): void {
+        this._actived = true;
     }
 
     /**
@@ -123,7 +97,9 @@ class SymbolCache {
         );
 
         const result = new CachedSymbols(document, symbols || []);
-        this.cache.set(key, result);
+        // 已激活缓存才存储
+        if (this._actived)
+            this.cache.set(key, result);
         return result;
     }
 
@@ -159,6 +135,7 @@ class SymbolCache {
     /**
      * 在工作区中按名称精确查找符号
      */
+    // TODO: 生成文档依赖图(include链)，提升搜索性能
     async findSymbolInWorkspace(name: string): Promise<SymbolLocation | null> {
         const files = await vscode.workspace.findFiles('**/*.{shader,cginc,hlsl,hlsli,compute}', '**/node_modules/**');
 
@@ -180,7 +157,7 @@ class SymbolCache {
     /**
      * 使指定文件的缓存失效
      */
-    private invalidate(uri: vscode.Uri): void {
+    public invalidate(uri: vscode.Uri): void {
         this.cache.delete(uri.fsPath);
     }
 
@@ -188,13 +165,47 @@ class SymbolCache {
      * 释放资源
      */
     dispose(): void {
-        for (const disposable of this.disposables) {
-            disposable.dispose();
-        }
         this.cache.clear();
     }
 }
 
+/**
+ * 判断是否为 shader 相关文件
+ */
+const isShaderFile = (uri: vscode.Uri): boolean => {
+    const ext = uri.fsPath.toLowerCase();
+    return ext.endsWith('.shader') ||
+        ext.endsWith('.cginc') ||
+        ext.endsWith('.hlsl') ||
+        ext.endsWith('.hlsli') ||
+        ext.endsWith('.compute');
+}
+
 const symbolCache = new SymbolCache();
 
-export { symbolCache };
+const registerSymbolCache = (context: vscode.ExtensionContext) => {
+    if (symbolCache.actived)
+        return;
+
+    // 激活符号缓存
+    symbolCache.active();
+
+    // 监听 shader 相关文件变化
+    const watcher = vscode.workspace.createFileSystemWatcher('**/*.{shader,cginc,hlsl,hlsli,compute}');
+    watcher.onDidChange(uri => symbolCache.invalidate(uri));
+    watcher.onDidDelete(uri => symbolCache.invalidate(uri));
+    watcher.onDidCreate(uri => symbolCache.invalidate(uri));
+
+    // 监听文档编辑事件
+    const onDidChangeTextDocument = vscode.workspace.onDidChangeTextDocument(e => {
+        if (isShaderFile(e.document.uri)) {
+            symbolCache.invalidate(e.document.uri);
+        }
+    })
+
+    context.subscriptions.push(symbolCache);
+    context.subscriptions.push(watcher);
+    context.subscriptions.push(onDidChangeTextDocument);
+}
+
+export { symbolCache, registerSymbolCache };

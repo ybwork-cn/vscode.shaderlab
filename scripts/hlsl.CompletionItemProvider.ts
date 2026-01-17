@@ -466,11 +466,17 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
     }
 }
 
-// 注册 HLSL 自动完成提供器
-const hlslCompletionItemProvider = vscode.languages.registerCompletionItemProvider(
-    'hlsl',
-    new HlslCompletionItemProvider(),
-    '.', ':' // 触发字符
-);
+/**
+ * 注册 HLSL 自动完成提供器
+ * @param context 
+ */
+const registerCompletionItemProvider = (context: vscode.ExtensionContext) => {
+    const hlslCompletionItemProvider = vscode.languages.registerCompletionItemProvider(
+        'hlsl',
+        new HlslCompletionItemProvider(),
+        '.', ':' // 触发字符
+    );
 
-export { hlslCompletionItemProvider };
+    context.subscriptions.push(hlslCompletionItemProvider);
+}
+export { registerCompletionItemProvider };

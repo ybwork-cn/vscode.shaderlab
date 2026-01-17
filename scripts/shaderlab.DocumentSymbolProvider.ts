@@ -370,21 +370,29 @@ const SemanticTokens_Root = (document: vscode.TextDocument, bracketInfo: Bracket
     return null;
 };
 
-// 定义文档符号工具
-const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('shaderlab', {
-    /**
-     * 提供文档中所有符号信息
-     * Provide symbol information for the given document.
-     * @param document The document in which the command was invoked.
-     * @param token A cancellation token.
-     * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
-     * signaled by returning `undefined`, `null`, or an empty array.
-    */
-    provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.SymbolInformation[] | vscode.DocumentSymbol[]> {
-        const rootBracket = documentStructureUtils.getRootBracket(document, token);
-        const documentStructure = SemanticTokens_Root(document, rootBracket, token);
-        return [documentStructure];
-    }
-});
+/**
+ * 提供文档中所有符号信息
+ * Provide symbol information for the given document.
+ * @param document The document in which the command was invoked.
+ * @param token A cancellation token.
+ * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
+ * signaled by returning `undefined`, `null`, or an empty array.
+*/
+const provideDocumentSymbols = (document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.SymbolInformation[] | vscode.DocumentSymbol[]> => {
+    const rootBracket = documentStructureUtils.getRootBracket(document, token);
+    const documentStructure = SemanticTokens_Root(document, rootBracket, token);
+    return [documentStructure];
+}
 
-export { documentSymbolProvider };
+/**
+ * 定义文档符号工具提供程序
+ * @param context 
+ */
+const registerDocumentSymbolProvider = (context: vscode.ExtensionContext) => {
+    const provider = vscode.languages.registerDocumentSymbolProvider('shaderlab',
+        { provideDocumentSymbols }
+    );
+    context.subscriptions.push(provider);
+}
+
+export { registerDocumentSymbolProvider };

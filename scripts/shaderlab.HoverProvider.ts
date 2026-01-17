@@ -151,8 +151,7 @@ const provideFunctionHover = (functionName: string): vscode.ProviderResult<vscod
     }
 };
 
-class HoverProvider implements vscode.HoverProvider {
-    provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
+const provideHover = (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> => {
         //调用VSCode API获取当前光标下单词的原始定义
         return vscode.commands
             .executeCommand<vscode.DefinitionLink[]>('vscode.executeDefinitionProvider', document.uri, position)
@@ -207,9 +206,17 @@ class HoverProvider implements vscode.HoverProvider {
                 const functionName = document.getText(wordRange);
                 return provideFunctionHover(functionName);
             });
-    }
 }
 
-const hoverProvider = vscode.languages.registerHoverProvider('shaderlab', new HoverProvider());
+/**
+ * 悬浮提示
+ * @param context 
+ */
+const registerHoverProvider = (context: vscode.ExtensionContext) => {
+    const hoverProvider = vscode.languages.registerHoverProvider('shaderlab', {
+        provideHover
+    });
+    context.subscriptions.push(hoverProvider);
+}
 
-export { hoverProvider };
+export { registerHoverProvider };

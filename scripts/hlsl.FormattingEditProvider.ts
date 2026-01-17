@@ -1,9 +1,17 @@
 import * as vscode from 'vscode';
 import { provideDocumentFormattingEdits } from './shared.CodeFormatter.js';
 
-// 格式化工具
-const documentFormattingEditProvider = vscode.languages.registerDocumentFormattingEditProvider('hlsl',
-    { provideDocumentFormattingEdits }
-);
 
-export { documentFormattingEditProvider };
+/**
+ * 注册格式化提供程序
+ * @param context 
+ */
+const registerDocumentFormattingEditProvider = (context: vscode.ExtensionContext) => {
+    const hlslDocumentFormattingEditProvider = vscode.languages.registerDocumentFormattingEditProvider('hlsl',
+        { provideDocumentFormattingEdits }
+    );
+
+    context.subscriptions.push(hlslDocumentFormattingEditProvider);
+}
+
+export { registerDocumentFormattingEditProvider };

@@ -353,19 +353,28 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
     return symbols;
 }
 
-// 定义文档符号工具
-const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('hlsl', {
-    /**
-     * 定义文档符号
-     * Provide symbol information for the given document.
-     * @param document The document in which the command was invoked.
-     * @param token A cancellation token.
-     * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
-     * signaled by returning `undefined`, `null`, or an empty array.
-     */
-    provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] {
-        return parseHLSLSymbols(document);
-    }
-});
+/**
+ * 定义文档符号
+ * Provide symbol information for the given document.
+ * @param document The document in which the command was invoked.
+ * @param token A cancellation token.
+ * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
+ * signaled by returning `undefined`, `null`, or an empty array.
+ */
+const provideDocumentSymbols = (document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] => {
+    return parseHLSLSymbols(document);
+}
 
-export { documentSymbolProvider };
+/**
+ * 注册功能：文档符号提供
+ * @param context 
+ */
+const registerDocumentSymbolProvider = (context: vscode.ExtensionContext) => {
+    const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('hlsl', {
+        provideDocumentSymbols
+    });
+    context.subscriptions.push(documentSymbolProvider);
+}
+
+
+export { registerDocumentSymbolProvider };

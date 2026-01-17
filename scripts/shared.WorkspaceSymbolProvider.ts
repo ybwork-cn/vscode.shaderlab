@@ -24,7 +24,7 @@ const provideWorkspaceSymbols = async (
     );
 
     for (const file of files) {
-        if (token.isCancellationRequested) 
+        if (token.isCancellationRequested)
             break;
 
         try {
@@ -57,10 +57,17 @@ const resolveWorkspaceSymbol = async (
     return symbol;
 };
 
-// 注册 WorkspaceSymbolProvider
-const workspaceSymbolProvider = vscode.languages.registerWorkspaceSymbolProvider({
-    provideWorkspaceSymbols,
-    resolveWorkspaceSymbol
-});
+/**
+ * 注册 WorkspaceSymbolProvider
+ * @param context 
+ */
+const registerWorkspaceSymbolProvider = (context: vscode.ExtensionContext) => {
+    const workspaceSymbolProvider = vscode.languages.registerWorkspaceSymbolProvider({
+        provideWorkspaceSymbols,
+        resolveWorkspaceSymbol
+    });
 
-export { workspaceSymbolProvider };
+    context.subscriptions.push(workspaceSymbolProvider);
+}
+
+export { registerWorkspaceSymbolProvider };
