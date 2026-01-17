@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import * as $ from './$.js';
+import $ from './$.js';
 
-function getDocumentSymbols(document: vscode.TextDocument) {
+const getDocumentSymbols = (document: vscode.TextDocument) => {
     return vscode.commands.executeCommand<vscode.DocumentSymbol[]>('vscode.executeDocumentSymbolProvider', document.uri);
 }
 
@@ -15,7 +15,7 @@ function getDocumentSymbols(document: vscode.TextDocument) {
  * v2f v;
  * 当敲下"v."时，自动弹出候选词pos
  */
-function provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> {
+const provideCompletionItems = (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList<vscode.CompletionItem>> => {
     const line = document.lineAt(position);
     // 只截取到光标位置为止，防止一些特殊情况
     let lineText = line.text.substring(0, position.character);

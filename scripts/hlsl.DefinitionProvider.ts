@@ -7,7 +7,7 @@ import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
 /**
  * 解析文档中的所有 #include 路径
  */
-function parseIncludes(document: vscode.TextDocument): string[] {
+const parseIncludes = (document: vscode.TextDocument): string[] => {
     const text = document.getText();
     const includes: string[] = [];
     const regex = /#include\s+["<]([^">]+)[">]/g;
@@ -21,33 +21,16 @@ function parseIncludes(document: vscode.TextDocument): string[] {
 }
 
 /**
- * 在符号列表中查找指定名称的符号
- */
-function findSymbolByName(symbols: vscode.DocumentSymbol[], name: string): vscode.DocumentSymbol | null {
-    for (const symbol of symbols) {
-        if (symbol.name === name) {
-            return symbol;
-        }
-        // 递归搜索子符号
-        const found = findSymbolByName(symbol.children, name);
-        if (found) {
-            return found;
-        }
-    }
-    return null;
-}
-
-/**
  * 递归在文件链中查找定义
  * @param document 当前文档
  * @param word 要查找的符号名称
  * @param visited 已访问的文件集合（防止循环引用）
  */
-async function findDefinitionInFileChain(
+const findDefinitionInFileChain = async (
     document: vscode.TextDocument,
     word: string,
     visited: Set<string> = new Set()
-): Promise<vscode.DefinitionLink | null> {
+): Promise<vscode.DefinitionLink | null> => {
     const filePath = document.uri.fsPath;
 
     // 防止循环引用
@@ -57,8 +40,8 @@ async function findDefinitionInFileChain(
     visited.add(filePath);
 
     // 1. 在当前文件中查找
-    const symbols = await symbolCache.getSymbols(document);
-    const found = findSymbolByName(symbols, word);
+    const cached = await symbolCache.getCachedSymbols(document);
+    const found = cached.findSymbol(word);
     if (found) {
         return {
             targetUri: document.uri,
@@ -90,7 +73,7 @@ async function findDefinitionInFileChain(
 /**
  * 在 Unity CGIncludes 路径中查找定义
  */
-async function findDefinitionInUnityIncludes(word: string): Promise<vscode.DefinitionLink | null> {
+const findDefinitionInUnityIncludes = async (word: string): Promise<vscode.DefinitionLink | null> => {
     // 优先使用新配置，兼容旧配置
     const config = vscode.workspace.getConfiguration('ybwork-shaderlab');
     const cgIncludesPath = config.get<string>('cgIncludesPath') 
@@ -118,12 +101,11 @@ async function findDefinitionInUnityIncludes(word: string): Promise<vscode.Defin
         const filePath = path.join(cgIncludesPath, file);
         if (fs.existsSync(filePath)) {
             try {
-                const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
-                const symbols = await symbolCache.getSymbols(doc);
-                const found = findSymbolByName(symbols, word);
+                const cached = await symbolCache.getCachedSymbolsByUri(vscode.Uri.file(filePath));
+                const found = cached.findSymbol(word);
                 if (found) {
                     return {
-                        targetUri: doc.uri,
+                        targetUri: cached.uri,
                         targetRange: found.range,
                         targetSelectionRange: found.selectionRange,
                     };
@@ -140,7 +122,7 @@ async function findDefinitionInUnityIncludes(word: string): Promise<vscode.Defin
 /**
  * 在工作区中查找定义
  */
-async function findDefinitionInWorkspace(word: string): Promise<vscode.DefinitionLink | null> {
+const findDefinitionInWorkspace = async (word: string): Promise<vscode.DefinitionLink | null> => {
     const location = await symbolCache.findSymbolInWorkspace(word);
     if (location) {
         return {
@@ -155,7 +137,7 @@ async function findDefinitionInWorkspace(word: string): Promise<vscode.Definitio
 /**
  * 检查位置是否在 #include 指令上
  */
-function isOnIncludePath(document: vscode.TextDocument, position: vscode.Position): boolean {
+const isOnIncludePath = (document: vscode.TextDocument, position: vscode.Position): boolean => {
     const line = document.lineAt(position.line).text;
     // 检查该行是否是 #include 指令
     const includeMatch = line.match(/^\s*#include\s+["<]([^"'>]+)["'>]/);
@@ -171,11 +153,11 @@ function isOnIncludePath(document: vscode.TextDocument, position: vscode.Positio
 /**
  * 提供定义跳转
  */
-async function provideDefinition(
+const provideDefinition = async (
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken
-): Promise<vscode.DefinitionLink[] | null> {
+): Promise<vscode.DefinitionLink[] | null> => {
     // 如果光标在 #include 路径上，不处理（由 DocumentLinkProvider 处理跳转）
     if (isOnIncludePath(document, position)) {
         return null;

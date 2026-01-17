@@ -31,14 +31,14 @@ const COMPUTE_KERNEL_REGEX = /\[\s*numthreads\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d
 /**
  * 判断是否为 HLSL 类型
  */
-function isHLSLType(typeName: string): boolean {
+const isHLSLType = (typeName: string): boolean => {
     return HLSL_TYPES.has(typeName);
 }
 
 /**
  * 创建 DocumentSymbol
  */
-function createSymbol(
+const createSymbol = (
     document: vscode.TextDocument,
     name: string,
     detail: string,
@@ -47,7 +47,7 @@ function createSymbol(
     matchLength: number,
     nameOffset: number = 0,
     nameLength: number = 0
-): vscode.DocumentSymbol {
+): vscode.DocumentSymbol => {
     const range = new vscode.Range(
         document.positionAt(matchIndex),
         document.positionAt(matchIndex + matchLength)
@@ -62,7 +62,7 @@ function createSymbol(
 /**
  * 解析 HLSL 文档符号
  */
-function parseHLSLSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[] {
+const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[] => {
     const text = document.getText();
     let match: RegExpExecArray | null;
     const symbols: vscode.DocumentSymbol[] = [];
@@ -204,14 +204,14 @@ function parseHLSLSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[
         const kernelName = match[4];
 
         // 检查是否已经被普通函数解析器解析过
-        const alreadyParsed = symbols.some(s => 
+        const alreadyParsed = symbols.some(s =>
             s.name === kernelName && s.kind === vscode.SymbolKind.Function
         );
-        
+
         if (!alreadyParsed) {
             const detail = `kernel [${threadX}, ${threadY}, ${threadZ}]`;
             const nameOffset = match[0].indexOf(kernelName);
-            
+
             const kernelSymbol = createSymbol(
                 document, kernelName, detail, vscode.SymbolKind.Function,
                 match.index, match[0].length, nameOffset, kernelName.length
@@ -219,7 +219,7 @@ function parseHLSLSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[
             symbols.push(kernelSymbol);
         } else {
             // 更新已解析函数的 detail 以标记为 kernel
-            const existingSymbol = symbols.find(s => 
+            const existingSymbol = symbols.find(s =>
                 s.name === kernelName && s.kind === vscode.SymbolKind.Function
             );
             if (existingSymbol) {
@@ -353,16 +353,19 @@ function parseHLSLSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[
     return symbols;
 }
 
-/**
- * 定义文档符号
- * Provide symbol information for the given document.
- * @param document The document in which the command was invoked.
- * @param token A cancellation token.
- * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
- * signaled by returning `undefined`, `null`, or an empty array.
- */
-function provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] {
-    return parseHLSLSymbols(document);
-}
+// 定义文档符号工具
+const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('hlsl', {
+    /**
+     * 定义文档符号
+     * Provide symbol information for the given document.
+     * @param document The document in which the command was invoked.
+     * @param token A cancellation token.
+     * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
+     * signaled by returning `undefined`, `null`, or an empty array.
+     */
+    provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] {
+        return parseHLSLSymbols(document);
+    }
+});
 
-export { provideDocumentSymbols, parseHLSLSymbols, isHLSLType, HLSL_TYPES };
+export { documentSymbolProvider };

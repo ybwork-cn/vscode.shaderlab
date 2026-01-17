@@ -13,7 +13,7 @@ let lastUnityProjectPath: string | null = null;
 /**
  * 获取扩展配置
  */
-function getConfig() {
+const getConfig = () => {
     const config = vscode.workspace.getConfiguration('ybwork-shaderlab');
     return {
         cgIncludesPath: config.get<string>('cgIncludesPath') || vscode.workspace.getConfiguration().get<string>('Unity CGIncludes Path'),
@@ -25,7 +25,7 @@ function getConfig() {
 /**
  * 扫描 Unity 项目的 Package 目录，建立包名到路径的映射
  */
-function scanUnityPackages(unityProjectPath: string): void {
+const scanUnityPackages = (unityProjectPath: string): void => {
     // 如果项目路径没变，使用缓存
     if (lastUnityProjectPath === unityProjectPath && packagePathCache.size > 0) {
         return;
@@ -100,7 +100,7 @@ function scanUnityPackages(unityProjectPath: string): void {
  * @param includePath 如 "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
  * @returns 实际文件系统路径或 null， 如： "E:/MyUnityProject/Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
  */
-function resolveUnityPackagePath(includePath: string): string | null {
+const resolveUnityPackagePath = (includePath: string): string | null => {
     // 检查是否是 Packages/ 开头
     if (!includePath.startsWith('Packages/')) {
         return null;
@@ -171,7 +171,7 @@ function resolveUnityPackagePath(includePath: string): string | null {
  * 3. 工作区根目录
  * 4. Unity CGIncludes 路径（内置 Shader）
  */
-function resolveIncludePath(document: vscode.TextDocument, includePath: string): vscode.Uri | null {
+const resolveIncludePath = (document: vscode.TextDocument, includePath: string): vscode.Uri | null => {
     const config = getConfig();
 
     // 1. 相对于当前文件目录
@@ -212,7 +212,7 @@ function resolveIncludePath(document: vscode.TextDocument, includePath: string):
 /**
  * 提供文档链接（#include 可点击跳转）
  */
-function provideDocumentLinks(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentLink[] {
+const provideDocumentLinks = (document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentLink[] => {
     const links: vscode.DocumentLink[] = [];
     const text = document.getText();
 
@@ -255,14 +255,14 @@ function provideDocumentLinks(document: vscode.TextDocument, token: vscode.Cance
 /**
  * 解析链接（当用户点击时调用）
  */
-function resolveDocumentLink(link: vscode.DocumentLink, token: vscode.CancellationToken): vscode.DocumentLink {
+const resolveDocumentLink = (link: vscode.DocumentLink, token: vscode.CancellationToken): vscode.DocumentLink => {
     return link;
 }
 
 /**
  * 清除包路径缓存（当配置改变时调用）
  */
-function clearPackageCache(): void {
+const clearPackageCache = (): void => {
     packagePathCache.clear();
     lastUnityProjectPath = null;
 }
@@ -283,4 +283,4 @@ vscode.workspace.onDidChangeConfiguration(e => {
     }
 });
 
-export { hlslDocumentLinkProvider, resolveIncludePath, resolveUnityPackagePath, clearPackageCache };
+export { hlslDocumentLinkProvider, resolveIncludePath };

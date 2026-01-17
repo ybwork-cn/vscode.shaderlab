@@ -87,9 +87,9 @@ export const HLSL_ALL_TYPES = new Set([
 /**
  * Check if a type name is a valid HLSL type
  */
-export function isHlslType(typeName: string): boolean {
+export const isHlslType = (typeName: string): boolean => {
     return HLSL_ALL_TYPES.has(typeName);
-}
+};
 
 // ============================================================================
 // HLSL Keywords
@@ -345,7 +345,7 @@ export const HLSL_ALL_SEMANTICS: HlslSemanticDef[] = [
 /**
  * Create a completion item for an HLSL function
  */
-export function createFunctionCompletionItem(func: HlslFunctionDef): vscode.CompletionItem {
+export const createFunctionCompletionItem = (func: HlslFunctionDef): vscode.CompletionItem => {
     const item = new vscode.CompletionItem(func.name, vscode.CompletionItemKind.Function);
     item.detail = func.signature;
     item.documentation = new vscode.MarkdownString(func.description);
@@ -363,51 +363,51 @@ export function createFunctionCompletionItem(func: HlslFunctionDef): vscode.Comp
     }
     
     return item;
-}
+};
 
 /**
  * Create a completion item for an HLSL type
  */
-export function createTypeCompletionItem(typeName: string): vscode.CompletionItem {
+export const createTypeCompletionItem = (typeName: string): vscode.CompletionItem => {
     const item = new vscode.CompletionItem(typeName, vscode.CompletionItemKind.TypeParameter);
     item.detail = 'HLSL Type';
     return item;
-}
+};
 
 /**
  * Create a completion item for an HLSL keyword
  */
-export function createKeywordCompletionItem(keyword: string): vscode.CompletionItem {
+export const createKeywordCompletionItem = (keyword: string): vscode.CompletionItem => {
     const item = new vscode.CompletionItem(keyword, vscode.CompletionItemKind.Keyword);
     item.detail = 'HLSL Keyword';
     return item;
-}
+};
 
 /**
  * Create a completion item for an HLSL semantic
  */
-export function createSemanticCompletionItem(semantic: HlslSemanticDef): vscode.CompletionItem {
+export const createSemanticCompletionItem = (semantic: HlslSemanticDef): vscode.CompletionItem => {
     const item = new vscode.CompletionItem(semantic.name, vscode.CompletionItemKind.EnumMember);
     item.detail = `Semantic (${semantic.stage})`;
     item.documentation = new vscode.MarkdownString(semantic.description);
     return item;
-}
+};
 
 /**
  * Find a function definition by name
  */
-export function findFunctionByName(name: string): HlslFunctionDef | undefined {
+export const findFunctionByName = (name: string): HlslFunctionDef | undefined => {
     return HLSL_ALL_FUNCTIONS.find(f => f.name === name);
-}
+};
 
 /**
  * Create a hover for an HLSL built-in function
  */
-export function createFunctionHover(func: HlslFunctionDef): vscode.Hover {
+export const createFunctionHover = (func: HlslFunctionDef): vscode.Hover => {
     const hoverMessage = new vscode.MarkdownString();
     hoverMessage.isTrusted = false;
     hoverMessage.supportHtml = false;
     hoverMessage.appendCodeblock(func.signature, 'hlsl');
     hoverMessage.appendMarkdown(func.description);
     return new vscode.Hover(hoverMessage);
-}
+};

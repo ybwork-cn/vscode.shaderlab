@@ -1,8 +1,42 @@
 import * as vscode from 'vscode';
 
-interface CachedSymbols {
-    version: number;
-    symbols: vscode.DocumentSymbol[];
+class CachedSymbols {
+    readonly version: number;
+    readonly uri: vscode.Uri;
+    readonly symbols: readonly vscode.DocumentSymbol[];
+    readonly flattenedSymbols: readonly vscode.DocumentSymbol[];
+
+    private symbolMap: Map<string, vscode.DocumentSymbol> = new Map();
+
+    constructor(document: vscode.TextDocument, symbols: vscode.DocumentSymbol[]) {
+        this.version = document.version;
+        this.uri = document.uri;
+        this.symbols = symbols;
+        this.flattenedSymbols = CachedSymbols.flattenSymbols(symbols);
+    }
+
+    // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
+    public findSymbol(name: string): vscode.DocumentSymbol | undefined {
+        const symbol = this.symbolMap.get(name);
+        if (symbol)
+            return symbol;
+
+        const newSymbol = this.flattenedSymbols.find(sym => sym.name === name);
+        this.symbolMap.set(name, newSymbol);
+        return newSymbol;
+    }
+
+    /**
+     * 扁平化符号树
+     */
+    private static flattenSymbols(symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] {
+        const result: vscode.DocumentSymbol[] = [];
+        for (const symbol of symbols) {
+            result.push(symbol);
+            result.push(...this.flattenSymbols(symbol.children));
+        }
+        return result;
+    }
 }
 
 interface SymbolLocation {
@@ -25,6 +59,7 @@ class SymbolCache {
         this.watcher.onDidChange(uri => this.invalidate(uri));
         this.watcher.onDidDelete(uri => this.cache.delete(uri.fsPath));
         this.watcher.onDidCreate(uri => this.invalidate(uri));
+        this.disposables.push(this.watcher);
 
         // 监听文档编辑事件
         this.disposables.push(
@@ -34,8 +69,6 @@ class SymbolCache {
                 }
             })
         );
-
-        this.disposables.push(this.watcher);
     }
 
     /**
@@ -51,15 +84,15 @@ class SymbolCache {
     }
 
     /**
-     * 获取文档符号（优先从缓存读取）
+     * 获取文档符号缓存，如果缓存不存在或过期则重新获取
      */
-    async getSymbols(document: vscode.TextDocument): Promise<vscode.DocumentSymbol[]> {
+    async getCachedSymbols(document: vscode.TextDocument): Promise<CachedSymbols> {
         const key = document.uri.fsPath;
         const cached = this.cache.get(key);
 
         // 如果缓存有效，直接返回
         if (cached && cached.version === document.version) {
-            return cached.symbols;
+            return cached;
         }
 
         // 调用 VS Code 内置命令获取符号
@@ -68,79 +101,28 @@ class SymbolCache {
             document.uri
         );
 
-        const result = symbols || [];
-        this.cache.set(key, { version: document.version, symbols: result });
+        const result = new CachedSymbols(document, symbols || []);
+        this.cache.set(key, result);
         return result;
     }
 
-    /**
-     * 根据 URI 获取符号（会打开文档）
-     */
-    async getSymbolsByUri(uri: vscode.Uri): Promise<vscode.DocumentSymbol[]> {
-        try {
-            const document = await vscode.workspace.openTextDocument(uri);
-            return this.getSymbols(document);
-        } catch (e) {
-            console.error(`Failed to open document: ${uri.fsPath}`, e);
-            return [];
-        }
-    }
-
-    /**
-     * 在符号树中递归查找指定名称的符号
-     */
-    findSymbolByName(symbols: vscode.DocumentSymbol[], name: string): vscode.DocumentSymbol | null {
-        for (const symbol of symbols) {
-            if (symbol.name === name) {
-                return symbol;
-            }
-            const found = this.findSymbolByName(symbol.children, name);
-            if (found) {
-                return found;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 在符号树中递归查找指定类型的符号
-     */
-    findSymbolsByKind(symbols: vscode.DocumentSymbol[], kinds: vscode.SymbolKind[]): vscode.DocumentSymbol[] {
-        const result: vscode.DocumentSymbol[] = [];
-        for (const symbol of symbols) {
-            if (kinds.includes(symbol.kind)) {
-                result.push(symbol);
-            }
-            result.push(...this.findSymbolsByKind(symbol.children, kinds));
-        }
-        return result;
-    }
-
-    /**
-     * 扁平化符号树
-     */
-    flattenSymbols(symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] {
-        const result: vscode.DocumentSymbol[] = [];
-        for (const symbol of symbols) {
-            result.push(symbol);
-            result.push(...this.flattenSymbols(symbol.children));
-        }
-        return result;
+    async getCachedSymbolsByUri(uri: vscode.Uri): Promise<CachedSymbols> {
+        const document = await vscode.workspace.openTextDocument(uri);
+        return this.getCachedSymbols(document);
     }
 
     /**
      * 在工作区中搜索符号
      */
+    // TODO: 生成文档依赖图(include链)，提升搜索性能
     async searchWorkspaceSymbols(query: string): Promise<SymbolLocation[]> {
         const results: SymbolLocation[] = [];
         const files = await vscode.workspace.findFiles('**/*.{shader,cginc,hlsl,hlsli,compute}', '**/node_modules/**');
 
         for (const file of files) {
             try {
-                const symbols = await this.getSymbolsByUri(file);
-                const flatSymbols = this.flattenSymbols(symbols);
-
-                for (const symbol of flatSymbols) {
+                const cached = await this.getCachedSymbolsByUri(file);
+                for (const symbol of cached.flattenedSymbols) {
                     if (symbol.name.toLowerCase().includes(query.toLowerCase())) {
                         results.push({ uri: file, symbol });
                     }
@@ -161,8 +143,8 @@ class SymbolCache {
 
         for (const file of files) {
             try {
-                const symbols = await this.getSymbolsByUri(file);
-                const found = this.findSymbolByName(symbols, name);
+                const cached = await this.getCachedSymbolsByUri(file);
+                const found = cached.findSymbol(name);
                 if (found) {
                     return { uri: file, symbol: found };
                 }
@@ -177,15 +159,8 @@ class SymbolCache {
     /**
      * 使指定文件的缓存失效
      */
-    invalidate(uri: vscode.Uri): void {
+    private invalidate(uri: vscode.Uri): void {
         this.cache.delete(uri.fsPath);
-    }
-
-    /**
-     * 清空所有缓存
-     */
-    clear(): void {
-        this.cache.clear();
     }
 
     /**
@@ -199,7 +174,6 @@ class SymbolCache {
     }
 }
 
-// 全局单例
 const symbolCache = new SymbolCache();
 
-export { symbolCache, SymbolCache, SymbolLocation };
+export { symbolCache };

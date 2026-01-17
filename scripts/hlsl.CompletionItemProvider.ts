@@ -21,7 +21,7 @@ import {
     createKeywordCompletionItem,
     createSemanticCompletionItem,
     HlslFunctionDef,
-} from './shared.HlslBuiltins.js';
+} from './hlsl.Builtins.js';
 
 /**
  * 缓存的自动完成项
@@ -34,7 +34,7 @@ let cachedSemanticItems: vscode.CompletionItem[] | null = null;
 /**
  * 获取所有类型的自动完成项
  */
-function getTypeCompletionItems(): vscode.CompletionItem[] {
+const getTypeCompletionItems = (): vscode.CompletionItem[] => {
     if (cachedTypeItems) {
         return cachedTypeItems;
     }
@@ -97,7 +97,7 @@ function getTypeCompletionItems(): vscode.CompletionItem[] {
 /**
  * 获取所有关键字的自动完成项
  */
-function getKeywordCompletionItems(): vscode.CompletionItem[] {
+const getKeywordCompletionItems = (): vscode.CompletionItem[] => {
     if (cachedKeywordItems) {
         return cachedKeywordItems;
     }
@@ -123,7 +123,7 @@ function getKeywordCompletionItems(): vscode.CompletionItem[] {
 /**
  * 获取所有函数的自动完成项
  */
-function getFunctionCompletionItems(): vscode.CompletionItem[] {
+const getFunctionCompletionItems = (): vscode.CompletionItem[] => {
     if (cachedFunctionItems) {
         return cachedFunctionItems;
     }
@@ -150,7 +150,7 @@ function getFunctionCompletionItems(): vscode.CompletionItem[] {
 /**
  * 获取所有语义的自动完成项
  */
-function getSemanticCompletionItems(): vscode.CompletionItem[] {
+const getSemanticCompletionItems = (): vscode.CompletionItem[] => {
     if (cachedSemanticItems) {
         return cachedSemanticItems;
     }
@@ -165,29 +165,13 @@ function getSemanticCompletionItems(): vscode.CompletionItem[] {
 }
 
 /**
- * 在符号中查找结构体定义
- */
-function findStructSymbol(symbols: vscode.DocumentSymbol[], structName: string): vscode.DocumentSymbol | null {
-    for (const symbol of symbols) {
-        if (symbol.kind === vscode.SymbolKind.Struct && symbol.name === structName) {
-            return symbol;
-        }
-        const found = findStructSymbol(symbol.children, structName);
-        if (found) {
-            return found;
-        }
-    }
-    return null;
-}
-
-/**
  * 查找变量的类型名
  */
-function findVariableType(
+const findVariableType = (
     document: vscode.TextDocument,
     variableName: string,
     position: vscode.Position
-): string | null {
+): string | null => {
     const textBefore = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
     
     // 匹配变量声明：Type variableName
@@ -214,11 +198,11 @@ function findVariableType(
 /**
  * 递归在文件链中查找结构体
  */
-async function findStructInFileChain(
+const findStructInFileChain = async (
     document: vscode.TextDocument,
     structName: string,
     visited: Set<string> = new Set()
-): Promise<vscode.DocumentSymbol | null> {
+): Promise<vscode.DocumentSymbol | null> => {
     const filePath = document.uri.fsPath;
     if (visited.has(filePath)) {
         return null;
@@ -226,8 +210,8 @@ async function findStructInFileChain(
     visited.add(filePath);
 
     // 在当前文件中查找
-    const symbols = await symbolCache.getSymbols(document);
-    const found = findStructSymbol(symbols, structName);
+    const cached = await symbolCache.getCachedSymbols(document);
+    const found = cached.flattenedSymbols.find(sym => sym.kind === vscode.SymbolKind.Struct && sym.name === structName);
     if (found) {
         return found;
     }
@@ -255,11 +239,11 @@ async function findStructInFileChain(
 /**
  * 提供结构体字段的自动完成
  */
-async function provideStructFieldCompletion(
+const provideStructFieldCompletion = async (
     document: vscode.TextDocument,
     position: vscode.Position,
     variableName: string
-): Promise<vscode.CompletionItem[]> {
+): Promise<vscode.CompletionItem[]> => {
     // 查找变量的类型
     const typeName = findVariableType(document, variableName, position);
     if (!typeName) {
@@ -287,7 +271,7 @@ async function provideStructFieldCompletion(
 /**
  * 提供 Swizzle 自动完成 (如 .xyz, .rgb)
  */
-function provideSwizzleCompletion(typeName: string): vscode.CompletionItem[] {
+const provideSwizzleCompletion = (typeName: string): vscode.CompletionItem[] => {
     const items: vscode.CompletionItem[] = [];
 
     // 检查是否为向量类型
@@ -328,7 +312,7 @@ function provideSwizzleCompletion(typeName: string): vscode.CompletionItem[] {
 /**
  * 检查是否在语义位置（: 后面）
  */
-function isInSemanticPosition(document: vscode.TextDocument, position: vscode.Position): boolean {
+const isInSemanticPosition = (document: vscode.TextDocument, position: vscode.Position): boolean => {
     const line = document.lineAt(position.line).text;
     const textBefore = line.substring(0, position.character);
     
@@ -344,7 +328,7 @@ function isInSemanticPosition(document: vscode.TextDocument, position: vscode.Po
 /**
  * 检查是否是 Compute Shader 文件
  */
-function isComputeShader(document: vscode.TextDocument): boolean {
+const isComputeShader = (document: vscode.TextDocument): boolean => {
     const ext = document.uri.fsPath.toLowerCase();
     if (ext.endsWith('.compute')) {
         return true;
@@ -454,8 +438,8 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
         }
 
         // 添加当前文档中的符号
-        const documentSymbols = await symbolCache.getSymbols(document);
-        for (const symbol of symbolCache.flattenSymbols(documentSymbols)) {
+        const cached = await symbolCache.getCachedSymbols(document);
+        for (const symbol of cached.flattenedSymbols) {
             let kind = vscode.CompletionItemKind.Variable;
             if (symbol.kind === vscode.SymbolKind.Function || symbol.kind === vscode.SymbolKind.Method) {
                 kind = vscode.CompletionItemKind.Function;
@@ -489,4 +473,4 @@ const hlslCompletionItemProvider = vscode.languages.registerCompletionItemProvid
     '.', ':' // 触发字符
 );
 
-export { hlslCompletionItemProvider, HlslCompletionItemProvider };
+export { hlslCompletionItemProvider };

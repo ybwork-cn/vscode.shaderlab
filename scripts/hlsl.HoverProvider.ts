@@ -7,13 +7,13 @@ import {
     findFunctionByName,
     createFunctionHover,
     HLSL_ALL_SEMANTICS,
-} from './shared.HlslBuiltins.js';
+} from './hlsl.Builtins.js';
 
 /**
  * 从符号定义位置提取 /// 注释
  * 向上查找连续的 /// 注释行
  */
-function extractDocComment(document: vscode.TextDocument, symbolStartLine: number): string | null {
+const extractDocComment = (document: vscode.TextDocument, symbolStartLine: number): string | null => {
     const comments: string[] = [];
     let lineNum = symbolStartLine - 1;
 
@@ -74,10 +74,10 @@ function extractDocComment(document: vscode.TextDocument, symbolStartLine: numbe
 /**
  * 获取符号定义的完整文本（用于 hover 显示）
  */
-function getSymbolDefinitionText(
+const getSymbolDefinitionText = (
     document: vscode.TextDocument,
     symbol: vscode.DocumentSymbol
-): string {
+): string => {
     const startLine = symbol.range.start.line;
     const lineText = document.lineAt(startLine).text;
 
@@ -128,7 +128,7 @@ function getSymbolDefinitionText(
 /**
  * 检查位置是否在 #include 指令上
  */
-function isOnIncludePath(document: vscode.TextDocument, position: vscode.Position): boolean {
+const isOnIncludePath = (document: vscode.TextDocument, position: vscode.Position): boolean => {
     const line = document.lineAt(position.line).text;
     return /^\s*#include\s+["<]/.test(line);
 }
@@ -136,7 +136,7 @@ function isOnIncludePath(document: vscode.TextDocument, position: vscode.Positio
 /**
  * 检查位置是否在语义位置（: 后面的语义名称）
  */
-function getSemanticAtPosition(document: vscode.TextDocument, position: vscode.Position): string | null {
+const getSemanticAtPosition = (document: vscode.TextDocument, position: vscode.Position): string | null => {
     const line = document.lineAt(position.line).text;
     const wordRange = document.getWordRangeAtPosition(position);
     if (!wordRange) return null;
@@ -162,11 +162,11 @@ function getSemanticAtPosition(document: vscode.TextDocument, position: vscode.P
 /**
  * 在文件链中查找符号定义和注释
  */
-async function findSymbolWithComment(
+const findSymbolWithComment = async (
     document: vscode.TextDocument,
     word: string,
     visited: Set<string> = new Set()
-): Promise<{ symbol: vscode.DocumentSymbol; document: vscode.TextDocument; comment: string | null } | null> {
+): Promise<{ symbol: vscode.DocumentSymbol; document: vscode.TextDocument; comment: string | null } | null> => {
     const filePath = document.uri.fsPath;
     if (visited.has(filePath)) {
         return null;
@@ -174,8 +174,8 @@ async function findSymbolWithComment(
     visited.add(filePath);
 
     // 在当前文件中查找
-    const symbols = await symbolCache.getSymbols(document);
-    const found = symbolCache.findSymbolByName(symbols, word);
+    const cached = await symbolCache.getCachedSymbols(document);
+    const found = cached.findSymbol(word);
     if (found) {
         const comment = extractDocComment(document, found.range.start.line);
         return { symbol: found, document, comment };
@@ -319,4 +319,4 @@ const hlslHoverProvider = vscode.languages.registerHoverProvider(
     new HlslHoverProvider()
 );
 
-export { hlslHoverProvider, HlslHoverProvider, extractDocComment };
+export { hlslHoverProvider };
