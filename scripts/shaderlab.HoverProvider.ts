@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import * as $ from './$.js';
-import { documentStructureUtils } from './shaderlab.DocumentStructure.js';
+import $ from './$.js';
+import { documentStructureUtils } from './shared.DocumentStructure.js';
 
 type FunctionDef = {
     text: string;
     desc?: string;
 }
 
-function getTrimedText(document: vscode.TextDocument, range: vscode.Range): string {
+const getTrimedText = (document: vscode.TextDocument, range: vscode.Range): string => {
     let text = document.getText(range);
     text = $.replace(text, /^\r\n/, (v) => '\n');
     const lines = text.split('\n');
@@ -16,9 +16,9 @@ function getTrimedText(document: vscode.TextDocument, range: vscode.Range): stri
         lines[i] = lines[i].slice(indent);
     }
     return lines.join('\n');
-}
+};
 
-function provideFunctionHover(functionName: string): vscode.ProviderResult<vscode.Hover> {
+const provideFunctionHover = (functionName: string): vscode.ProviderResult<vscode.Hover> => {
     const getFunctionDef = (): FunctionDef => {
         switch (functionName) {
             case 'clip': return {
@@ -135,7 +135,7 @@ function provideFunctionHover(functionName: string): vscode.ProviderResult<vscod
             };
             default: return null;
         }
-    }
+    };
     const functionDef = getFunctionDef();
     if (functionDef) {
         const hoverMessage = new vscode.MarkdownString();
@@ -149,7 +149,7 @@ function provideFunctionHover(functionName: string): vscode.ProviderResult<vscod
         // 创建一个 MarkdownString 来格式化悬停内容
         return new vscode.Hover(hoverMessage);
     }
-}
+};
 
 class HoverProvider implements vscode.HoverProvider {
     provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
@@ -158,6 +158,9 @@ class HoverProvider implements vscode.HoverProvider {
             .executeCommand<vscode.DefinitionLink[]>('vscode.executeDefinitionProvider', document.uri, position)
             .then<vscode.Hover>(definitions => {
                 for (const def of definitions) {
+                    if (token.isCancellationRequested)
+                        return null;
+
                     const hoverMessage = new vscode.MarkdownString();
                     hoverMessage.isTrusted = false; // 默认值，明确写出以示清晰
                     hoverMessage.supportHtml = false; // 确保不支持HTML，以防止安全问题

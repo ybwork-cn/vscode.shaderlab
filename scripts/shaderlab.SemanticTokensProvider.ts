@@ -1,6 +1,6 @@
 
 import * as vscode from 'vscode';
-import { documentStructureUtils } from './shaderlab.DocumentStructure.js';
+import { documentStructureUtils } from './shared.DocumentStructure.js';
 
 enum tokenType {
     type = 'type',          // 表示类型。
@@ -30,42 +30,42 @@ const tokenLegend = new vscode.SemanticTokensLegend(
     'public',       // 表示标记的语法元素是公共的。
 ]);
 
-function SemanticTokens_CGPROGRAM(document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbol: vscode.DocumentSymbol) {
+const SemanticTokens_CGPROGRAM = (document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbol: vscode.DocumentSymbol) => {
     const symbols = documentStructureUtils.findAllSymbols(symbol);
     SemanticTokens_Structs(document, tokensBuilder, symbols);
     SemanticTokens_Fields(document, tokensBuilder, symbols);
     SemanticTokens_Variables(document, tokensBuilder, symbols);
-}
+};
 
-function SemanticTokens_Structs(document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) {
+const SemanticTokens_Structs = (document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) => {
     symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Struct]);
     for (const symbol of symbols) {
         tokensBuilder.push(document.getWordRangeAtPosition(symbol.range.start), 'macro');
         tokensBuilder.push(symbol.selectionRange, tokenType.struct);
     }
-}
+};
 
-function SemanticTokens_Variables(document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) {
+const SemanticTokens_Variables = (document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) => {
     symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Variable]);
     for (const symbol of symbols) {
         SemanticTokens_Type(document, tokensBuilder, symbol.range.start);
         tokensBuilder.push(symbol.selectionRange, tokenType.variable);
     }
-}
+};
 
-function SemanticTokens_Fields(document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) {
+const SemanticTokens_Fields = (document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) => {
     symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Field]);
     for (const symbol of symbols) {
         SemanticTokens_Type(document, tokensBuilder, symbol.range.start);
         tokensBuilder.push(symbol.selectionRange, tokenType.property);
     }
-}
+};
 
-function SemanticTokens_Type(
+const SemanticTokens_Type = (
     document: vscode.TextDocument,
     tokensBuilder: vscode.SemanticTokensBuilder,
     position: vscode.Position
-) {
+) => {
     const typeRange = document.getWordRangeAtPosition(position);
     const typeText = document.getText(typeRange);
     if (typeText.match(/^((fixed|float|int|half)([1-4](x[1-4])?)?)$/)) {
@@ -77,7 +77,7 @@ function SemanticTokens_Type(
     else {
         tokensBuilder.push(typeRange, tokenType.struct);
     }
-}
+};
 
 // 定义语义标记提供程序
 class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {

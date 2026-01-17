@@ -11,7 +11,7 @@ import {
     textChangedEvent
 } from './shaderlab.diagnosticProvider.js';
 
-function activate(context: vscode.ExtensionContext) {
+const activate = (context: vscode.ExtensionContext) => {
 
     const activateCommand = vscode.commands.registerCommand('ybwork-shaderlab.activate', () => {
         vscode.window.showInformationMessage('Beautify ShaderLab 已手动激活！');
@@ -35,6 +35,7 @@ function activate(context: vscode.ExtensionContext) {
         });
     });
 
+    // 注册清理逻辑
     // 注册文档符号提供程序
     context.subscriptions.push(documentSymbolProvider);
     // 注册格式化提供程序
@@ -53,8 +54,10 @@ function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(formatCommand);
     // 注册诊断集合监听器
     context.subscriptions.push(diagnosticCollection);
-    // TODO:注册文档变化监听器
-    // context.subscriptions.push(textChangedEvent);
+    // 注册文档变化监听器
+    context.subscriptions.push(textChangedEvent);
+
+    console.log('shaderlab language support activated');
 }
 
 export { activate }

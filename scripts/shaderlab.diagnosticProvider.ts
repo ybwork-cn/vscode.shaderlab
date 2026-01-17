@@ -1,21 +1,20 @@
 import * as vscode from 'vscode';
 
 // 创建诊断集合
-const diagnosticCollection = vscode
-    .languages
+const diagnosticCollection = vscode.languages
     .createDiagnosticCollection('ybwork-shaderlab');
 
 /**
  * 报告指定文档的诊断信息
  * @param document 发生变化的文档
  */
-function provideDiagnostics(document: vscode.TextDocument): void {
+const provideDiagnostics = (document: vscode.TextDocument): void => {
     // 仅处理 shaderlab 语言的文档
     if (document.languageId !== 'shaderlab')
         return;
 
     // 创建诊断信息列表
-    const diagnostics: vscode.Diagnostic[] = [];
+    // const diagnostics: vscode.Diagnostic[] = [];
 
     // // 添加一个诊断信息：第0行，第0列，错误级别，消息为 "这是一个自定义错误"
     // const range = new vscode.Range(
@@ -29,7 +28,7 @@ function provideDiagnostics(document: vscode.TextDocument): void {
     // 分析代码结构，查找潜在错误或警告
 
     // 文件变化后，更新诊断集合，设置为新的诊断信息列表
-    diagnosticCollection.set(document.uri, diagnostics);
+    // diagnosticCollection.set(document.uri, diagnostics);
 }
 
 // 注册一个文档打开/更改监听器

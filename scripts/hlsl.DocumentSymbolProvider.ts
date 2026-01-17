@@ -184,4 +184,10 @@ function provideDocumentSymbols(document: vscode.TextDocument, token: vscode.Can
     return SemanticTokens_Root(document);
 }
 
-export { provideDocumentSymbols };
+// 定义文档符号工具
+const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('hlsl',
+    {
+        provideDocumentSymbols
+    }
+);
+export { documentSymbolProvider };
