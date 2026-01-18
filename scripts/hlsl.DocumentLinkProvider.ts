@@ -42,11 +42,28 @@ const scanUnityPackages = (unityProjectPath: string): void => {
             for (const entry of entries) {
                 if (entry.isDirectory()) {
                     // 包名格式: com.unity.render-pipelines.core@14.0.8 或 @hash
-                    const match = entry.name.match(/^(.+?)@/);
-                    if (match) {
-                        const packageName = match[1];
-                        packagePathCache.set(packageName, path.join(packageCachePath, entry.name));
+                    const dirPath = path.join(packageCachePath, entry.name);
+                    // 尝试从 package.json 获取包名（更可靠，适配无 @version 的情况）
+                    let packageName: string | null = null;
+                    const packageJsonPath = path.join(dirPath, 'package.json');
+                    if (fs.existsSync(packageJsonPath)) {
+                        try {
+                            const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+                            if (pkg && pkg.name) {
+                                packageName = pkg.name;
+                            }
+                        } catch (e) {
+                            console.error(`Failed to parse package.json: ${packageJsonPath}`, e);
+                        }
                     }
+
+                    // 回退处理：有 @ 则取 @ 之前的部分，否则使用整个目录名
+                    if (!packageName) {
+                        const match = entry.name.match(/^(.+?)@/);
+                        packageName = (match && match[1]) ? match[1] : entry.name;
+                    }
+
+                    packagePathCache.set(packageName, dirPath);
                 }
             }
         } catch (e) {
