@@ -189,18 +189,22 @@ const provideDefinition = async (
         return [chainResult];
     }
 
+    /**
+     * todo: 在unity中hlsl文件通常有明确的头文件引用关系，暂时屏蔽工作区和Unity CGIncludes的查找
+     * 未来可以考虑做成可选配置项（从.shader文件建立头文件依赖图）
+     *
     // 2. 在工作区中查找
     const workspaceResult = await findDefinitionInWorkspace(word);
     if (workspaceResult) {
         return [workspaceResult];
     }
-
+    * hlsl 不使用 Builtin管线的CGIncludes 库
     // 3. 在 Unity CGIncludes 中查找
     const unityResult = await findDefinitionInUnityIncludes(word);
     if (unityResult) {
         return [unityResult];
     }
-
+    */
     return null;
 }
 
