@@ -26,11 +26,7 @@ const getSymbolDefine = (document: vscode.TextDocument, name: string, temp: Docu
                     return [_symbol];
             }
 
-            const last = symbols.pop();
-            const path = vscode.workspace.getConfiguration().get('Unity CGIncludes Path');
-            return vscode.workspace.openTextDocument(path + "/" + last.symbol.name).then(doc => {
-                return getSymbolDefine(doc, name, symbols);
-            });
+            return [];
         });
 }
 
@@ -55,24 +51,8 @@ const provideDefinition = (document: vscode.TextDocument, position: vscode.Posit
                     return [target];
             }
 
-            const path = vscode.workspace.getConfiguration().get<string>('Unity CGIncludes Path');
-            if (!fs.existsSync(path))
-                return null;
-            return vscode.workspace.openTextDocument(path + "/UnityCG.cginc")
-                .then(doc => {
-                    return getSymbolDefine(doc, document.getText(document.getWordRangeAtPosition(position)), []);
-                })
-                .then<vscode.DefinitionLink[]>(symbolInfos => {
-                    const result: vscode.DefinitionLink[] = [];
-                    for (const symbolInfo of symbolInfos) {
-                        result.push({
-                            targetUri: symbolInfo.document.uri,
-                            targetRange: symbolInfo.symbol.range,
-                            targetSelectionRange: symbolInfo.symbol.selectionRange,
-                        });
-                    }
-                    return result;
-                });
+            // TODO: 通过include跨文件定义查找
+            return null;
         });
 }
 

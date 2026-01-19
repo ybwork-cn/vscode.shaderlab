@@ -71,55 +71,6 @@ const findDefinitionInFileChain = async (
 }
 
 /**
- * 在 Unity CGIncludes 路径中查找定义
- */
-const findDefinitionInUnityIncludes = async (word: string): Promise<vscode.DefinitionLink | null> => {
-    // 优先使用新配置，兼容旧配置
-    const config = vscode.workspace.getConfiguration('ybwork-shaderlab');
-    const cgIncludesPath = config.get<string>('cgIncludesPath')
-        || vscode.workspace.getConfiguration().get<string>('Unity CGIncludes Path');
-
-    if (!cgIncludesPath || !fs.existsSync(cgIncludesPath)) {
-        return null;
-    }
-
-    // 常用的 Unity HLSL 文件
-    const commonFiles = [
-        'UnityCG.cginc',
-        'UnityShaderVariables.cginc',
-        'UnityShaderUtilities.cginc',
-        'UnityStandardUtils.cginc',
-        'Lighting.cginc',
-        'AutoLight.cginc',
-        'UnityPBSLighting.cginc',
-        'UnityStandardCore.cginc',
-        'UnityStandardBRDF.cginc',
-        'UnityGlobalIllumination.cginc',
-    ];
-
-    for (const file of commonFiles) {
-        const filePath = path.join(cgIncludesPath, file);
-        if (fs.existsSync(filePath)) {
-            try {
-                const cached = await symbolCache.getCachedSymbolsByUri(vscode.Uri.file(filePath));
-                const found = cached.findSymbol(word);
-                if (found) {
-                    return {
-                        targetUri: cached.uri,
-                        targetRange: found.range,
-                        targetSelectionRange: found.selectionRange,
-                    };
-                }
-            } catch (e) {
-                console.error(`Failed to search in Unity include: ${file}`, e);
-            }
-        }
-    }
-
-    return null;
-}
-
-/**
  * 在工作区中查找定义
  */
 const findDefinitionInWorkspace = async (word: string): Promise<vscode.DefinitionLink | null> => {
@@ -195,18 +146,12 @@ const provideDefinition = async (
         return [workspaceResult];
     }
 
-    // 3. 在 Unity CGIncludes 中查找
-    const unityResult = await findDefinitionInUnityIncludes(word);
-    if (unityResult) {
-        return [unityResult];
-    }
-
     return null;
 }
 
 /**
  * 注册 HLSL Definition Provider
- * @param context 
+ * @param context
  */
 const registerDefinitionProvider = (context: vscode.ExtensionContext) => {
     const hlslDefinitionProvider = vscode.languages.registerDefinitionProvider('hlsl',

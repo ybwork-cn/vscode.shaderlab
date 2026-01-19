@@ -23,22 +23,13 @@
 - 工作区符号搜索 (Ctrl+T)
 
 ## 配置项
-
-在 VS Code 设置中可以配置以下选项：
-
-| 配置项 | 说明 | 示例 |
-|--------|------|------|
-| `ybwork-shaderlab.cgIncludesPath` | Unity 内置 Shader 的 CGIncludes 路径 | `C:/Program Files/Unity/Hub/Editor/2022.3.0f1/Editor/Data/CGIncludes` |
-| `ybwork-shaderlab.unityProjectPath` | Unity 项目根目录路径 | `D:/UnityProjects/MyGame` |
-| `ybwork-shaderlab.packageMappings` | Unity Package 路径映射 | 见下方示例 |
+暂无
 
 ### Unity Package 路径配置
 
 对于 `#include "Packages/com.unity.render-pipelines.core/..."` 这样的 include 语句，插件会自动在以下位置查找：
 
 1. **自动检测**：如果工作区包含 Unity 项目（有 Assets 文件夹），会自动扫描 `Library/PackageCache` 和 `Packages` 目录
-2. **手动配置项目路径**：设置 `ybwork-shaderlab.unityProjectPath` 指向 Unity 项目根目录
-3. **手动映射**：使用 `ybwork-shaderlab.packageMappings` 手动指定包路径
 
 #### packageMappings 配置示例
 
