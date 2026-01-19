@@ -217,10 +217,14 @@ const provideDocumentLinks = (document: vscode.TextDocument, token: vscode.Cance
     const text = document.getText();
 
     // 匹配 #include "xxx" 或 #include <xxx>
-    const regex = /#include\s+["<]([^">]+)[">]/g;
+    // 不匹配 "//" 注释中的 include
+    const regex = /(?<!\/\/.*)#include\s+["<]([^">]+)[">]/g;
     let match: RegExpExecArray | null;
 
     while ((match = regex.exec(text)) !== null) {
+        if (token.isCancellationRequested)
+            break;
+
         const includePath = match[1];
         const fullMatch = match[0];
         const matchStart = match.index;
@@ -269,7 +273,7 @@ const clearPackageCache = (): void => {
 
 /**
  * 注册 DocumentLinkProvider
- * @param context 
+ * @param context
  */
 const registerDocumentLinkProvider = (context: vscode.ExtensionContext) => {
     const hlslDocumentLinkProvider = vscode.languages.registerDocumentLinkProvider(

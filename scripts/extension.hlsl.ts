@@ -11,8 +11,8 @@ import { registerSymbolCache } from './shared.SymbolCache.js';
 const activate = (context: vscode.ExtensionContext) => {
     // // 符号提供
     // registerDocumentSymbolProvider(context);
-    // // #include 跳转
-    // registerDocumentLinkProvider(context);
+    // #include 跳转
+    registerDocumentLinkProvider(context);
     // 格式化
     registerDocumentFormattingEditProvider(context);
     // // 定义跳转
@@ -23,8 +23,8 @@ const activate = (context: vscode.ExtensionContext) => {
     // registerHoverProvider(context);
     // // 工作区符号搜索
     // registerWorkspaceSymbolProvider(context);
-    // // 符号缓存
-    // registerSymbolCache(context);                      
+    // 符号缓存
+    registerSymbolCache(context);
 
     console.log('HLSL language support activated');
 }
