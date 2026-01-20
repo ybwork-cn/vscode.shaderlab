@@ -92,10 +92,6 @@ class CachedSymbols {
     readonly includes: readonly vscode.DocumentLink[];
 
     private symbolMap: Map<string, vscode.DocumentSymbol | null> = new Map();
-    /**
-     * 模糊查询的缓存
-     */
-    private queryMap: Map<string, vscode.DocumentSymbol[]> = new Map();
 
     constructor(document: vscode.TextDocument, symbols: vscode.DocumentSymbol[]) {
         this.version = document.version;
@@ -116,7 +112,9 @@ class CachedSymbols {
     }
 
     // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
-    public async findSymbolRecursionAsync(name: string, token: vscode.CancellationToken): Promise<SymbolLocation | null> {
+    public async findSymbolRecursionAsync(name: string, token: vscode.CancellationToken): Promise<SymbolLocation> {
+        if (token.isCancellationRequested)
+            return null;
         const cached = this.findSymbol(name);
         if (cached)
             return {
@@ -126,8 +124,6 @@ class CachedSymbols {
         for (const include of this.includes) {
             if (include == null)
                 continue;
-            if (token.isCancellationRequested)
-                break;
             const targetCache = await symbolCache.getCachedSymbolsByUri(include.target);
             const targetCachedSymbol = await targetCache.findSymbolRecursionAsync(name, token);
             if (targetCachedSymbol)
@@ -141,17 +137,31 @@ class CachedSymbols {
      * 模糊查询
      * @param lowerQueryName 包含的字符串
      */
-    public querySymbols(lowerQueryName: string): vscode.DocumentSymbol[] {
-        const cached = this.queryMap.get(lowerQueryName);
-        if (cached)
-            return cached;
-
-        const symbols = this.flattenedSymbols.filter(symbol => {
-            const name = symbol.name.toLowerCase();
-            return name.includes(lowerQueryName);
-        });
-        this.queryMap.set(lowerQueryName, symbols);
+    // TODO: 增加递归查找机制
+    public querySymbols(predicate: (symbol: vscode.DocumentSymbol) => boolean): vscode.DocumentSymbol[] {
+        const symbols = this.flattenedSymbols.filter(predicate);
         return symbols;
+    }
+
+    public async querySymbolRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol> {
+        // 查找当前文件的符号
+        const found = this.flattenedSymbols.find(predicate);
+        if (found)
+            return found;
+
+        // 递归查找包含的文件
+        for (const include of this.includes) {
+            if (include == null)
+                continue;
+            if (token.isCancellationRequested)
+                break;
+            const targetCache = await symbolCache.getCachedSymbolsByUri(include.target);
+            const targetSymbol = await targetCache.querySymbolRecursion(predicate, token);
+            if (targetSymbol)
+                return targetSymbol;
+        }
+
+        return null;
     }
 }
 

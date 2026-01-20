@@ -30,7 +30,10 @@ const provideWorkspaceSymbols = async (
         try {
             const cached = await symbolCache.getCachedSymbolsByUri(file);
             const symbolInfos = cached
-                .querySymbols(lowerQuery)
+                .querySymbols(symbol => {
+                    const name = symbol.name.toLowerCase();
+                    return name.includes(lowerQuery);
+                })
                 .map(symbol => new vscode.SymbolInformation(
                     symbol.name,
                     symbol.kind,

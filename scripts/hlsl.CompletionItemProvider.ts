@@ -194,40 +194,13 @@ const findVariableType = (
 }
 
 /**
- * 递归在文件链中查找结构体
- */
-const findStructInFileChain = async (
-    document: vscode.TextDocument,
-    structName: string
-): Promise<vscode.DocumentSymbol | null> => {
-    // TODO: 增加缓存
-    // 在当前文件中查找
-    const cached = await symbolCache.getCachedSymbols(document);
-    const found = cached.flattenedSymbols.find(sym => sym.kind === vscode.SymbolKind.Struct && sym.name === structName);
-    if (found) {
-        return found;
-    }
-
-    // 在 #include 文件中查找
-    for (const include of cached.includes) {
-        if (!include)
-            continue;
-        const includeCached = await symbolCache.getCachedSymbolsByUri(include.target);
-        const includeFound = findStructInFileChain(includeCached.document, structName);
-        if (includeFound)
-            return includeFound;
-    }
-
-    return null;
-}
-
-/**
  * 提供结构体字段的自动完成
  */
 const provideStructFieldCompletion = async (
     document: vscode.TextDocument,
     position: vscode.Position,
-    variableName: string
+    variableName: string,
+    token: vscode.CancellationToken
 ): Promise<vscode.CompletionItem[]> => {
     // 查找变量的类型
     const typeName = findVariableType(document, variableName, position);
@@ -236,7 +209,11 @@ const provideStructFieldCompletion = async (
     }
 
     // 查找结构体定义
-    const structSymbol = await findStructInFileChain(document, typeName);
+    const cached = await symbolCache.getCachedSymbols(document);
+    const structSymbol = await cached.querySymbolRecursion(sym => {
+        return sym.kind === vscode.SymbolKind.Struct
+            && sym.name === typeName;
+    }, token);
     if (!structSymbol) {
         return [];
     }
@@ -344,7 +321,7 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
                 const variableName = dotMatch[1];
 
                 // 尝试获取结构体字段
-                const fieldItems = await provideStructFieldCompletion(document, position, variableName);
+                const fieldItems = await provideStructFieldCompletion(document, position, variableName, token);
                 if (fieldItems.length > 0) {
                     return fieldItems;
                 }
