@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
 import { symbolCache } from './shared.SymbolCache.js';
-import { parseIncludes } from './hlsl.DefinitionProvider.js';
-import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
 import {
     HLSL_ALL_TYPES,
     HLSL_SCALAR_TYPES,
@@ -173,7 +171,7 @@ const findVariableType = (
     position: vscode.Position
 ): string | null => {
     const textBefore = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
-    
+
     // 匹配变量声明：Type variableName
     const patterns = [
         // 普通变量声明
@@ -200,15 +198,9 @@ const findVariableType = (
  */
 const findStructInFileChain = async (
     document: vscode.TextDocument,
-    structName: string,
-    visited: Set<string> = new Set()
+    structName: string
 ): Promise<vscode.DocumentSymbol | null> => {
-    const filePath = document.uri.fsPath;
-    if (visited.has(filePath)) {
-        return null;
-    }
-    visited.add(filePath);
-
+    // TODO: 增加缓存
     // 在当前文件中查找
     const cached = await symbolCache.getCachedSymbols(document);
     const found = cached.flattenedSymbols.find(sym => sym.kind === vscode.SymbolKind.Struct && sym.name === structName);
@@ -217,20 +209,13 @@ const findStructInFileChain = async (
     }
 
     // 在 #include 文件中查找
-    const includes = parseIncludes(document);
-    for (const includePath of includes) {
-        const resolvedUri = resolveIncludePath(document, includePath);
-        if (resolvedUri) {
-            try {
-                const includeDoc = await vscode.workspace.openTextDocument(resolvedUri);
-                const result = await findStructInFileChain(includeDoc, structName, visited);
-                if (result) {
-                    return result;
-                }
-            } catch (e) {
-                // 忽略无法打开的文件
-            }
-        }
+    for (const include of cached.includes) {
+        if (!include)
+            continue;
+        const includeCached = await symbolCache.getCachedSymbolsByUri(include.target);
+        const includeFound = findStructInFileChain(includeCached.document, structName);
+        if (includeFound)
+            return includeFound;
     }
 
     return null;
@@ -315,13 +300,13 @@ const provideSwizzleCompletion = (typeName: string): vscode.CompletionItem[] => 
 const isInSemanticPosition = (document: vscode.TextDocument, position: vscode.Position): boolean => {
     const line = document.lineAt(position.line).text;
     const textBefore = line.substring(0, position.character);
-    
+
     // 检查是否在 : 后面，但不在 :: 后面（命名空间）
     const colonMatch = textBefore.match(/:\s*(\w*)$/);
     if (colonMatch && !textBefore.endsWith('::')) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -333,7 +318,7 @@ const isComputeShader = (document: vscode.TextDocument): boolean => {
     if (ext.endsWith('.compute')) {
         return true;
     }
-    
+
     // 检查文件内容是否包含 compute shader 特征
     const text = document.getText();
     return /\[numthreads\s*\(/.test(text) || /RWTexture|RWStructuredBuffer/.test(text);
@@ -357,7 +342,7 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
             const dotMatch = linePrefix.match(/(\w+)\.\s*\w*$/);
             if (dotMatch) {
                 const variableName = dotMatch[1];
-                
+
                 // 尝试获取结构体字段
                 const fieldItems = await provideStructFieldCompletion(document, position, variableName);
                 if (fieldItems.length > 0) {
@@ -379,7 +364,7 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
         // 2. 检查是否在语义位置
         if (isInSemanticPosition(document, position)) {
             const semanticItems = getSemanticCompletionItems();
-            
+
             // 如果是 compute shader，优先显示 compute 语义
             if (isComputeShader(document)) {
                 const computeSemantics = HLSL_COMPUTE_SEMANTICS.map(s => {
@@ -389,7 +374,7 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
                 });
                 return [...computeSemantics, ...semanticItems];
             }
-            
+
             return semanticItems;
         }
 

@@ -11,6 +11,7 @@ import * as fs from 'fs';
  * 1. 相对于当前文件
  * 2. 工作区根目录
  */
+// TODO: 不应export，需要的地方应该通过symbolCache获取文档内include数据
 const resolveIncludePath = (document: vscode.TextDocument, includePath: string): vscode.Uri | null => {
     // 1. 相对于当前文件目录
     const docDir = path.dirname(document.uri.fsPath);

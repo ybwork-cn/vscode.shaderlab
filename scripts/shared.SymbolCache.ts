@@ -1,12 +1,97 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+
+/**
+ * 解析 #include 路径，返回实际文件 URI
+ * 搜索顺序：
+ * 1. 相对于当前文件
+ * 2. 工作区根目录
+ */
+const resolveIncludePath = (document: vscode.TextDocument, includePath: string): vscode.Uri | null => {
+    // 1. 相对于当前文件目录
+    const docDir = path.dirname(document.uri.fsPath);
+    const relativePath = path.join(docDir, includePath);
+    if (fs.existsSync(relativePath)) {
+        return vscode.Uri.file(relativePath);
+    }
+
+    // 2. 工作区根目录
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders) {
+        for (const folder of workspaceFolders) {
+            const workspacePath = path.join(folder.uri.fsPath, includePath);
+            if (fs.existsSync(workspacePath)) {
+                return vscode.Uri.file(workspacePath);
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * 解析文档中的所有 #include 路径
+ */
+const parseIncludes = (document: vscode.TextDocument): vscode.DocumentLink[] => {
+    const links: vscode.DocumentLink[] = [];
+    const text = document.getText();
+
+    // 匹配 #include "xxx"
+    // 不匹配 "//" 注释中的 include
+    const regex = /(?<!\/\/.*)#include\s+"([^"]+)"/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(text)) !== null) {
+        const includePath = match[1];
+        const fullMatch = match[0];
+        const matchStart = match.index;
+
+        // 计算 includePath 在匹配中的位置
+        const pathStart = matchStart + fullMatch.indexOf(includePath);
+        const pathEnd = pathStart + includePath.length;
+
+        const startPos = document.positionAt(pathStart);
+        const endPos = document.positionAt(pathEnd);
+        const range = new vscode.Range(startPos, endPos);
+
+        // 解析路径
+        const resolvedUri = resolveIncludePath(document, includePath);
+        if (resolvedUri) {
+            links.push(new vscode.DocumentLink(range, resolvedUri));
+        }
+        else {
+            // 创建带提示的链接
+            const link = new vscode.DocumentLink(range);
+            link.tooltip = `无法找到文件: ${includePath}`;
+            links.push(link);
+        }
+    }
+
+    return links;
+}
+
+
+/**
+ * 扁平化符号树
+ */
+const flattenSymbols = (symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
+    const result: vscode.DocumentSymbol[] = [];
+    for (const symbol of symbols) {
+        result.push(symbol);
+        result.push(...flattenSymbols(symbol.children));
+    }
+    return result;
+}
 
 class CachedSymbols {
     readonly version: number;
-    readonly uri: vscode.Uri;
+    readonly document: vscode.TextDocument;
     readonly symbols: readonly vscode.DocumentSymbol[];
     readonly flattenedSymbols: readonly vscode.DocumentSymbol[];
+    readonly includes: readonly vscode.DocumentLink[];
 
-    private symbolMap: Map<string, vscode.DocumentSymbol> = new Map();
+    private symbolMap: Map<string, vscode.DocumentSymbol | null> = new Map();
     /**
      * 模糊查询的缓存
      */
@@ -14,20 +99,42 @@ class CachedSymbols {
 
     constructor(document: vscode.TextDocument, symbols: vscode.DocumentSymbol[]) {
         this.version = document.version;
-        this.uri = document.uri;
+        this.document = document;
         this.symbols = symbols;
-        this.flattenedSymbols = CachedSymbols.flattenSymbols(symbols);
+        this.flattenedSymbols = flattenSymbols(symbols);
+        this.includes = parseIncludes(document);
     }
 
     // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
-    public findSymbol(name: string): vscode.DocumentSymbol | undefined {
-        const cached = this.symbolMap.get(name);
-        if (cached)
-            return cached;
+    public findSymbol(name: string): vscode.DocumentSymbol | null {
+        if (this.symbolMap.has(name))
+            return this.symbolMap.get(name);
 
         const symbol = this.flattenedSymbols.find(sym => sym.name === name);
         this.symbolMap.set(name, symbol);
         return symbol;
+    }
+
+    // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
+    public async findSymbolRecursionAsync(name: string, token: vscode.CancellationToken): Promise<SymbolLocation | null> {
+        const cached = this.findSymbol(name);
+        if (cached)
+            return {
+                document: this.document,
+                symbol: cached
+            };
+        for (const include of this.includes) {
+            if (include == null)
+                continue;
+            if (token.isCancellationRequested)
+                break;
+            const targetCache = await symbolCache.getCachedSymbolsByUri(include.target);
+            const targetCachedSymbol = await targetCache.findSymbolRecursionAsync(name, token);
+            if (targetCachedSymbol)
+                return targetCachedSymbol;
+        }
+
+        return null;
     }
 
     /**
@@ -46,22 +153,10 @@ class CachedSymbols {
         this.queryMap.set(lowerQueryName, symbols);
         return symbols;
     }
-
-    /**
-     * 扁平化符号树
-     */
-    private static flattenSymbols(symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] {
-        const result: vscode.DocumentSymbol[] = [];
-        for (const symbol of symbols) {
-            result.push(symbol);
-            result.push(...this.flattenSymbols(symbol.children));
-        }
-        return result;
-    }
 }
 
 interface SymbolLocation {
-    uri: vscode.Uri;
+    document: vscode.TextDocument;
     symbol: vscode.DocumentSymbol;
 }
 
@@ -121,7 +216,10 @@ class SymbolCache {
                 const cached = await this.getCachedSymbolsByUri(file);
                 for (const symbol of cached.flattenedSymbols) {
                     if (symbol.name.toLowerCase().includes(query.toLowerCase())) {
-                        results.push({ uri: file, symbol });
+                        results.push({
+                            document: cached.document,
+                            symbol
+                        });
                     }
                 }
             } catch (e) {
@@ -144,7 +242,10 @@ class SymbolCache {
                 const cached = await this.getCachedSymbolsByUri(file);
                 const found = cached.findSymbol(name);
                 if (found) {
-                    return { uri: file, symbol: found };
+                    return {
+                        document: cached.document,
+                        symbol: found
+                    };
                 }
             } catch (e) {
                 console.error(`Failed to find symbol in: ${file.fsPath}`, e);
