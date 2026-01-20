@@ -122,8 +122,6 @@ class CachedSymbols {
                 symbol: cached
             };
         for (const include of this.includes) {
-            if (include == null)
-                continue;
             const targetCache = await symbolCache.getCachedSymbolsByUri(include.target);
             const targetCachedSymbol = await targetCache.findSymbolRecursionAsync(name, token);
             if (targetCachedSymbol)
@@ -151,8 +149,6 @@ class CachedSymbols {
 
         // 递归查找包含的文件
         for (const include of this.includes) {
-            if (include == null)
-                continue;
             if (token.isCancellationRequested)
                 break;
             const targetCache = await symbolCache.getCachedSymbolsByUri(include.target);

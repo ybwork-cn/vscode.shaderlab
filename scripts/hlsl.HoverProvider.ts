@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { symbolCache } from './shared.SymbolCache.js';
-import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
 import {
     HLSL_ALL_FUNCTIONS,
     findFunctionByName,
@@ -125,14 +124,6 @@ const getSymbolDefinitionText = (
 }
 
 /**
- * 检查位置是否在 #include 指令上
- */
-const isOnIncludePath = (document: vscode.TextDocument, position: vscode.Position): boolean => {
-    const line = document.lineAt(position.line).text;
-    return /^\s*#include\s+["<]/.test(line);
-}
-
-/**
  * 检查位置是否在语义位置（: 后面的语义名称）
  */
 const getSemanticAtPosition = (document: vscode.TextDocument, position: vscode.Position): string | null => {
@@ -186,26 +177,20 @@ class HlslHoverProvider implements vscode.HoverProvider {
         token: vscode.CancellationToken
     ): Promise<vscode.Hover | null> {
         // 1. 如果在 #include 路径上，显示文件路径信息
-        if (isOnIncludePath(document, position)) {
-            const line = document.lineAt(position.line).text;
-            const match = line.match(/#include\s+["<]([^"'>]+)["'>]/);
-            if (match) {
-                const includePath = match[1];
-                const resolvedUri = resolveIncludePath(document, includePath);
-
+        const cached = await symbolCache.getCachedSymbols(document);
+        for (const include of cached.includes) {
+            if (include.range.contains(position)) {
                 const hoverMessage = new vscode.MarkdownString();
                 hoverMessage.appendMarkdown(`**Include File**\n\n`);
-                hoverMessage.appendCodeblock(`#include "${includePath}"`, 'hlsl');
 
-                if (resolvedUri) {
-                    hoverMessage.appendMarkdown(`\n📁 ${resolvedUri.fsPath}`);
+                if (include.target) {
+                    hoverMessage.appendMarkdown(`\n📁 ${include.target.fsPath}`);
                 } else {
-                    hoverMessage.appendMarkdown(`\n⚠️ 无法解析文件路径`);
+                    hoverMessage.appendMarkdown(`\n⚠️ ${include.tooltip}`);
                 }
 
                 return new vscode.Hover(hoverMessage);
             }
-            return null;
         }
 
         // 获取光标下的单词
