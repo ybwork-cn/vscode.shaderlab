@@ -250,7 +250,7 @@ class HlslHoverProvider implements vscode.HoverProvider {
         }
 
         // 5. 尝试在工作区中查找
-        const workspaceResult = await symbolCache.findSymbolInWorkspace(word);
+        const workspaceResult = await symbolCache.findSymbolInWorkspace(word, token);
         if (workspaceResult) {
             const comment = extractDocComment(workspaceResult.document, workspaceResult.symbol.range.start.line);
 

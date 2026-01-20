@@ -27,8 +27,8 @@ const findDefinitionInFileChain = async (
 /**
  * 在工作区中查找定义
  */
-const findDefinitionInWorkspace = async (word: string): Promise<vscode.DefinitionLink | null> => {
-    const location = await symbolCache.findSymbolInWorkspace(word);
+const findDefinitionInWorkspace = async (word: string, token: vscode.CancellationToken): Promise<vscode.DefinitionLink | null> => {
+    const location = await symbolCache.findSymbolInWorkspace(word, token);
     if (location) {
         return {
             targetUri: location.document.uri,
@@ -95,7 +95,7 @@ const provideDefinition = async (
     }
 
     // 2. 在工作区中查找
-    const workspaceResult = await findDefinitionInWorkspace(word);
+    const workspaceResult = await findDefinitionInWorkspace(word, token);
     if (workspaceResult) {
         return [workspaceResult];
     }
