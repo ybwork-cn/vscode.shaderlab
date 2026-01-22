@@ -1,34 +1,7 @@
 
 import * as vscode from 'vscode';
-import * as fs from 'fs';
+import { symbolCache } from './shared.SymbolCache.js';
 import { documentStructureUtils } from './shared.DocumentStructure';
-
-interface DocumentSymbolInfo {
-    symbol: vscode.DocumentSymbol
-    document: vscode.TextDocument
-}
-
-const getSymbolDefine = (document: vscode.TextDocument, name: string, temp: DocumentSymbolInfo[]): vscode.ProviderResult<DocumentSymbolInfo[]> => {
-    return documentStructureUtils
-        .getDocumentSymbols(document)
-        .then(_symbols => {
-            const result: DocumentSymbolInfo[] = [...temp];
-            for (const symbol of _symbols) {
-                if (symbol.name == name || symbol.kind == vscode.SymbolKind.Module)
-                    result.push({ symbol, document });
-            }
-            return result;
-        }).then(symbols => {
-            if (symbols.length == 0)
-                return null;
-            for (const _symbol of symbols) {
-                if (_symbol.symbol.kind != vscode.SymbolKind.Module)
-                    return [_symbol];
-            }
-
-            return [];
-        });
-}
 
 /**
  * 转到定义
@@ -40,20 +13,18 @@ const getSymbolDefine = (document: vscode.TextDocument, name: string, temp: Docu
  * @return A definition or a thenable that resolves to such. The lack of a result can be
  * signaled by returning `undefined` or `null`.
  */
-const provideDefinition = (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DefinitionLink[]> => {
-    return documentStructureUtils
-        .getDocumentSymbols(document)
-        .then<vscode.LocationLink[]>(symbols => {
-            for (const symbol of symbols) {
-                const symbolStack = documentStructureUtils.getSymbolStack(symbol, position);
-                const target = nextSymbol(document, symbolStack, position);
-                if (target != null)
-                    return [target];
-            }
+const provideDefinition = async (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.DefinitionLink[]> => {
+    const cached = await symbolCache.getCachedSymbols(document);
+    const symbols = cached.symbols;
+    for (const symbol of symbols) {
+        const symbolStack = documentStructureUtils.getSymbolStack(symbol, position);
+        const target = nextSymbol(document, symbolStack, position);
+        if (target != null)
+            return [target];
+    }
 
-            // TODO: 通过include跨文件定义查找
-            return null;
-        });
+    // TODO: 通过include跨文件定义查找
+    return null;
 }
 
 const nextSymbol = (document: vscode.TextDocument, symbolStack: vscode.DocumentSymbol[], position: vscode.Position): vscode.DefinitionLink => {

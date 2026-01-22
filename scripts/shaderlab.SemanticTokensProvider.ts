@@ -1,5 +1,6 @@
 
 import * as vscode from 'vscode';
+import { symbolCache } from './shared.SymbolCache.js';
 import { documentStructureUtils } from './shared.DocumentStructure.js';
 
 enum tokenType {
@@ -81,19 +82,17 @@ const SemanticTokens_Type = (
 
 // 定义语义标记提供程序
 class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
-    provideDocumentSemanticTokens(document: vscode.TextDocument): vscode.ProviderResult<vscode.SemanticTokens> {
-        return documentStructureUtils
-            .getDocumentSymbols(document)
-            .then(symbols => {
-                if (symbols.length == 0)
-                    return null;
-                const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
-                const cgScriptSymbols = documentStructureUtils.findSymbolsByName(symbols, ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']);
-                for (const symbol of cgScriptSymbols) {
-                    SemanticTokens_CGPROGRAM(document, tokensBuilder, symbol);
-                }
-                return tokensBuilder.build();
-            });
+    async provideDocumentSemanticTokens(document: vscode.TextDocument): Promise<vscode.SemanticTokens> {
+        const cached = await symbolCache.getCachedSymbols(document);
+        const symbols = cached.flattenedSymbols;
+        if (symbols.length == 0)
+            return null;
+        const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
+        const cgScriptSymbols = documentStructureUtils.findSymbolsByName(symbols, ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']);
+        for (const symbol of cgScriptSymbols) {
+            SemanticTokens_CGPROGRAM(document, tokensBuilder, symbol);
+        }
+        return tokensBuilder.build();
     }
 }
 

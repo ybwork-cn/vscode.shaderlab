@@ -97,10 +97,6 @@ const getBrackets = (text: string, start: number, root: BracketInfo, brackets: {
     return index;
 }
 
-const getDocumentSymbols = (document: vscode.TextDocument): Thenable<vscode.DocumentSymbol[]> => {
-    return vscode.commands.executeCommand<vscode.DocumentSymbol[]>('vscode.executeDocumentSymbolProvider', document.uri);
-}
-
 const findAllSymbols = (symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] => {
     const result: vscode.DocumentSymbol[] = [];
     result.push(symbol);
@@ -120,7 +116,8 @@ const findSymbolsBySymbolKind = (symbols: vscode.DocumentSymbol[], kinds: vscode
     return result;
 }
 
-const findSymbolsByName = (symbols: vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] => {
+// TODO: 迁移到SymbolCache，移除symbol参数，从当前文档所有符号遍历
+const findSymbolsByName = (symbols: readonly vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] => {
     const result: vscode.DocumentSymbol[] = [];
     for (const symbol of symbols) {
         if (names.indexOf(symbol.name) >= 0)
@@ -130,11 +127,14 @@ const findSymbolsByName = (symbols: vscode.DocumentSymbol[], names: string[]): v
     return result;
 }
 
-const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
-    return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
-}
-
+// TODO: 迁移到SymbolCache，移除symbol参数，从当前文档所有符号遍历，找到包含position的符号路径
 const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] => {
+
+    // 判断symbol是否包含position
+    const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
+        return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
+    }
+
     if (symbol == null)
         return [];
 
@@ -149,7 +149,6 @@ const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position
 }
 
 const documentStructureUtils = {
-    getDocumentSymbols,
     isType,
     findAllSymbols,
     getRootBracket(document: vscode.TextDocument, token: vscode.CancellationToken): BracketInfo {
