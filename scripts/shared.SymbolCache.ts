@@ -84,6 +84,27 @@ const flattenSymbols = (symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol
     return result;
 }
 
+// 从一个符号递归查找，找到包含position的符号路径
+const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] => {
+
+    // 判断symbol是否包含position
+    const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
+        return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
+    }
+
+    if (symbol == null)
+        return [];
+
+    if (!symbolContainsPosition(symbol, position))
+        return [];
+
+    for (const child of symbol.children) {
+        if (symbolContainsPosition(child, position))
+            return [symbol, ...getSymbolStack(child, position)];
+    }
+    return [symbol];
+}
+
 class CachedSymbols {
     readonly version: number;
     readonly document: vscode.TextDocument;
@@ -92,6 +113,7 @@ class CachedSymbols {
     readonly includes: readonly vscode.DocumentLink[];
 
     private symbolMap: Map<string, vscode.DocumentSymbol | null> = new Map();
+    private symbolStackMap: Map<vscode.Position, readonly vscode.DocumentSymbol[]> = new Map();
 
     constructor(document: vscode.TextDocument, symbols: vscode.DocumentSymbol[]) {
         this.version = document.version;
@@ -175,6 +197,25 @@ class CachedSymbols {
         }
 
         return null;
+    }
+
+    /**
+     * 获取指定位置的符号堆栈
+     * @param position 
+     * @returns 
+     */
+    public getSymbolStack(position: vscode.Position): readonly vscode.DocumentSymbol[] {
+        const cached = this.symbolStackMap.get(position);
+        if (cached)
+            return cached;
+        for (const symbol of this.symbols) {
+            const stack = getSymbolStack(symbol, position);
+            if (stack.length > 0) {
+                this.symbolStackMap.set(position, stack);
+                return stack;
+            }
+        }
+        return [];
     }
 }
 

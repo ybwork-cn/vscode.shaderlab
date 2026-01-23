@@ -83,12 +83,10 @@ const SemanticTokens_Type = (
 // 定义语义标记提供程序
 class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
     async provideDocumentSemanticTokens(document: vscode.TextDocument): Promise<vscode.SemanticTokens> {
+        const names = ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE'];
         const cached = await symbolCache.getCachedSymbols(document);
-        const symbols = cached.flattenedSymbols;
-        if (symbols.length == 0)
-            return null;
+        const cgScriptSymbols = cached.querySymbols(symbol => names.includes(symbol.name));
         const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
-        const cgScriptSymbols = documentStructureUtils.findSymbolsByName(symbols, ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']);
         for (const symbol of cgScriptSymbols) {
             SemanticTokens_CGPROGRAM(document, tokensBuilder, symbol);
         }

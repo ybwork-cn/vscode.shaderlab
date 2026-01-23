@@ -116,38 +116,6 @@ const findSymbolsBySymbolKind = (symbols: vscode.DocumentSymbol[], kinds: vscode
     return result;
 }
 
-// TODO: 迁移到SymbolCache，移除symbol参数，从当前文档所有符号遍历
-const findSymbolsByName = (symbols: readonly vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] => {
-    const result: vscode.DocumentSymbol[] = [];
-    for (const symbol of symbols) {
-        if (names.indexOf(symbol.name) >= 0)
-            result.push(symbol);
-        result.push(...findSymbolsByName(symbol.children, names));
-    }
-    return result;
-}
-
-// TODO: 迁移到SymbolCache，移除symbol参数，从当前文档所有符号遍历，找到包含position的符号路径
-const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] => {
-
-    // 判断symbol是否包含position
-    const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
-        return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
-    }
-
-    if (symbol == null)
-        return [];
-
-    if (!symbolContainsPosition(symbol, position))
-        return [];
-
-    for (const child of symbol.children) {
-        if (symbolContainsPosition(child, position))
-            return [symbol, ...getSymbolStack(child, position)];
-    }
-    return [symbol];
-}
-
 const documentStructureUtils = {
     isType,
     findAllSymbols,
@@ -157,9 +125,7 @@ const documentStructureUtils = {
         getBrackets(text, 0, rootBracket, [], token);
         return rootBracket;
     },
-    getSymbolStack,
     findSymbolsBySymbolKind,
-    findSymbolsByName,
 }
 
 export {

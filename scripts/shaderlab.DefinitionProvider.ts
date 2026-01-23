@@ -1,7 +1,6 @@
 
 import * as vscode from 'vscode';
 import { symbolCache } from './shared.SymbolCache.js';
-import { documentStructureUtils } from './shared.DocumentStructure';
 
 /**
  * 转到定义
@@ -15,19 +14,16 @@ import { documentStructureUtils } from './shared.DocumentStructure';
  */
 const provideDefinition = async (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.DefinitionLink[]> => {
     const cached = await symbolCache.getCachedSymbols(document);
-    const symbols = cached.symbols;
-    for (const symbol of symbols) {
-        const symbolStack = documentStructureUtils.getSymbolStack(symbol, position);
-        const target = nextSymbol(document, symbolStack, position);
-        if (target != null)
-            return [target];
-    }
+    const symbolStack = cached.getSymbolStack(position);
+    const target = nextSymbol(document, symbolStack, position);
+    if (target != null)
+        return [target];
 
     // TODO: 通过include跨文件定义查找
     return null;
 }
 
-const nextSymbol = (document: vscode.TextDocument, symbolStack: vscode.DocumentSymbol[], position: vscode.Position): vscode.DefinitionLink => {
+const nextSymbol = (document: vscode.TextDocument, symbolStack: readonly vscode.DocumentSymbol[], position: vscode.Position): vscode.DefinitionLink => {
     // 当前光标下的单词
     const word = document.getText(document.getWordRangeAtPosition(position));
     // 倒序，由内而外查找定义
