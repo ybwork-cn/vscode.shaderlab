@@ -209,7 +209,7 @@ const provideStructFieldCompletion = async (
     }
 
     // 查找结构体定义
-    const cached = await symbolCache.getCachedSymbols(document);
+    const cached = await symbolCache.getCachedDocument(document);
     const structSymbol = await cached.querySymbolRecursion(sym => {
         return sym.kind === vscode.SymbolKind.Struct
             && sym.name === typeName;
@@ -400,7 +400,7 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
         }
 
         // 添加当前文档中的符号
-        const cached = await symbolCache.getCachedSymbols(document);
+        const cached = await symbolCache.getCachedDocument(document);
         for (const symbol of cached.flattenedSymbols) {
             let kind = vscode.CompletionItemKind.Variable;
             if (symbol.kind === vscode.SymbolKind.Function || symbol.kind === vscode.SymbolKind.Method) {

@@ -105,7 +105,7 @@ const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position
     return [symbol];
 }
 
-class CachedSymbols {
+class CachedDocument {
     readonly version: number;
     readonly document: vscode.TextDocument;
     readonly symbols: readonly vscode.DocumentSymbol[];
@@ -121,6 +121,42 @@ class CachedSymbols {
         this.symbols = symbols;
         this.flattenedSymbols = flattenSymbols(symbols);
         this.includes = parseIncludes(document);
+    }
+
+    /**
+     * 递归获取所有包含的文件，包括子包含文件，且层序遍历，且不重复
+     * @param token 
+     * @param action 
+     * @returns 
+     */
+    public async foreachIncludeRecursion(token: vscode.CancellationToken, func: (uri: CachedDocument) => boolean): Promise<void> {
+        const visited = new Set<string>();
+
+        const traverse = async (cachedDocument: CachedDocument) => {
+            // 先处理当前文件的包含，并记录已访问的文件
+            const includes = cachedDocument.includes;
+            const includeDocuments: CachedDocument[] = [];
+            for (const include of includes) {
+                if (token.isCancellationRequested)
+                    return;
+                if (include.target && !visited.has(include.target.fsPath)) {
+                    visited.add(include.target.fsPath);
+                    const targetCache = await symbolCache.getCachedDocumentByUri(include.target);
+                    const shouldContinue = await func(targetCache);
+                    if (!shouldContinue)
+                        return;
+                    includeDocuments.push(targetCache);
+                }
+            }
+            // 然后遍历下一层
+            for (const targetCache of includeDocuments) {
+                if (token.isCancellationRequested)
+                    return;
+                await traverse(targetCache);
+            }
+        }
+
+        await traverse(this);
     }
 
     // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
@@ -144,7 +180,7 @@ class CachedSymbols {
                 symbol: cached
             };
         for (const include of this.includes) {
-            const targetCache = await symbolCache.getCachedSymbolsByUri(include.target);
+            const targetCache = await symbolCache.getCachedDocumentByUri(include.target);
             const targetCachedSymbol = await targetCache.findSymbolRecursionAsync(name, token);
             if (targetCachedSymbol)
                 return targetCachedSymbol;
@@ -162,6 +198,7 @@ class CachedSymbols {
         return symbols;
     }
 
+    // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
     public async querySymbolsRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol[]> {
         const results: vscode.DocumentSymbol[] = [];
 
@@ -172,7 +209,7 @@ class CachedSymbols {
         for (const include of this.includes) {
             if (token.isCancellationRequested)
                 break;
-            const targetCache = await symbolCache.getCachedSymbolsByUri(include.target);
+            const targetCache = await symbolCache.getCachedDocumentByUri(include.target);
             const targetSymbols = await targetCache.querySymbolsRecursion(predicate, token);
             results.push(...targetSymbols);
         }
@@ -180,6 +217,7 @@ class CachedSymbols {
         return results;
     }
 
+    // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
     public async querySymbolRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol> {
         // 查找当前文件的符号
         const found = this.flattenedSymbols.find(predicate);
@@ -190,7 +228,7 @@ class CachedSymbols {
         for (const include of this.includes) {
             if (token.isCancellationRequested)
                 break;
-            const targetCache = await symbolCache.getCachedSymbolsByUri(include.target);
+            const targetCache = await symbolCache.getCachedDocumentByUri(include.target);
             const targetSymbol = await targetCache.querySymbolRecursion(predicate, token);
             if (targetSymbol)
                 return targetSymbol;
@@ -229,7 +267,7 @@ interface SymbolLocation {
  * 用于缓存文档符号，避免重复解析，支持跨文件查找
  */
 class SymbolCache {
-    private cache = new Map<string, CachedSymbols>();
+    private cache = new Map<string, CachedDocument>();
     private _actived: boolean = false;
     public get actived(): boolean { return this._actived; }
 
@@ -240,7 +278,7 @@ class SymbolCache {
     /**
      * 获取文档符号缓存，如果缓存不存在或过期则重新获取
      */
-    async getCachedSymbols(document: vscode.TextDocument): Promise<CachedSymbols> {
+    async getCachedDocument(document: vscode.TextDocument): Promise<CachedDocument> {
         const key = document.uri.fsPath;
         const cached = this.cache.get(key);
 
@@ -255,16 +293,16 @@ class SymbolCache {
             document.uri
         );
 
-        const result = new CachedSymbols(document, symbols || []);
+        const result = new CachedDocument(document, symbols || []);
         // 已激活缓存才存储
         if (this._actived)
             this.cache.set(key, result);
         return result;
     }
 
-    async getCachedSymbolsByUri(uri: vscode.Uri): Promise<CachedSymbols> {
+    async getCachedDocumentByUri(uri: vscode.Uri): Promise<CachedDocument> {
         const document = await vscode.workspace.openTextDocument(uri);
-        return this.getCachedSymbols(document);
+        return this.getCachedDocument(document);
     }
 
     /**
@@ -278,7 +316,7 @@ class SymbolCache {
             try {
                 if (token.isCancellationRequested)
                     break;
-                const cached = await this.getCachedSymbolsByUri(file);
+                const cached = await this.getCachedDocumentByUri(file);
                 const symbols = await cached.querySymbolsRecursion(symbol => {
                     return symbol.name.toLowerCase().includes(query.toLowerCase());
                 }, token);
@@ -306,7 +344,7 @@ class SymbolCache {
             try {
                 if (token.isCancellationRequested)
                     break;
-                const cached = await this.getCachedSymbolsByUri(file);
+                const cached = await this.getCachedDocumentByUri(file);
                 const found = await cached.findSymbolRecursionAsync(name, token);
                 if (found)
                     return found;

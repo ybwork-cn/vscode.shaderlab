@@ -12,7 +12,7 @@ const findDefinitionInFileChain = async (
     word: string,
     token: vscode.CancellationToken
 ): Promise<vscode.DefinitionLink | null> => {
-    const cached = await symbolCache.getCachedSymbols(document);
+    const cached = await symbolCache.getCachedDocument(document);
     const found = await cached.findSymbolRecursionAsync(word, token);
     if (found) {
         return {

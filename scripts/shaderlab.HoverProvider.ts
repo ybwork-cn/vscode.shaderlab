@@ -169,7 +169,7 @@ const provideHover = (document: vscode.TextDocument, position: vscode.Position, 
                 if (def.targetUri.toString() !== document.uri.toString())
                     continue;
 
-                const cached = await symbolCache.getCachedSymbols(document);
+                const cached = await symbolCache.getCachedDocument(document);
                 const symbolStack = cached.getSymbolStack(def.targetSelectionRange.start);
                 if (symbolStack.length === 0)
                     continue;

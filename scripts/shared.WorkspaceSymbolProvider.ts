@@ -28,7 +28,7 @@ const provideWorkspaceSymbols = async (
             break;
 
         try {
-            const cached = await symbolCache.getCachedSymbolsByUri(file);
+            const cached = await symbolCache.getCachedDocumentByUri(file);
             const symbolInfos = cached
                 .querySymbols(symbol => {
                     const name = symbol.name.toLowerCase();

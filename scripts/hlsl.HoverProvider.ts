@@ -157,7 +157,7 @@ const findSymbolWithComment = async (
     word: string,
     token: vscode.CancellationToken
 ): Promise<{ symbol: vscode.DocumentSymbol; document: vscode.TextDocument; comment: string | null } | null> => {
-    const cached = await symbolCache.getCachedSymbols(document);
+    const cached = await symbolCache.getCachedDocument(document);
     const found = await cached.findSymbolRecursionAsync(word, token)
     if (found) {
         const comment = extractDocComment(found.document, found.symbol.range.start.line);
@@ -177,7 +177,7 @@ class HlslHoverProvider implements vscode.HoverProvider {
         token: vscode.CancellationToken
     ): Promise<vscode.Hover | null> {
         // 1. 如果在 #include 路径上，显示文件路径信息
-        const cached = await symbolCache.getCachedSymbols(document);
+        const cached = await symbolCache.getCachedDocument(document);
         for (const include of cached.includes) {
             if (include.range.contains(position)) {
                 const hoverMessage = new vscode.MarkdownString();

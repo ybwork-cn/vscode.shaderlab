@@ -84,7 +84,7 @@ const SemanticTokens_Type = (
 class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
     async provideDocumentSemanticTokens(document: vscode.TextDocument): Promise<vscode.SemanticTokens> {
         const names = ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE'];
-        const cached = await symbolCache.getCachedSymbols(document);
+        const cached = await symbolCache.getCachedDocument(document);
         const cgScriptSymbols = cached.querySymbols(symbol => names.includes(symbol.name));
         const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
         for (const symbol of cgScriptSymbols) {
