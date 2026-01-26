@@ -84,25 +84,45 @@ const flattenSymbols = (symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol
     return result;
 }
 
-// 从一个符号递归查找，找到包含position的符号路径
-const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] => {
+// 判断symbol是否包含position
+const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
+    return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
+}
 
-    // 判断symbol是否包含position
-    const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
-        return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
-    }
-
-    if (symbol == null)
-        return [];
-
+/**
+ * 递归获取包含position的最小范围符号
+ * @param symbol 
+ * @param position 
+ * @returns 
+ */
+const getMinRangeSymbol = (symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol | null => {
     if (!symbolContainsPosition(symbol, position))
-        return [];
+        return null;
 
     for (const child of symbol.children) {
-        if (symbolContainsPosition(child, position))
-            return [symbol, ...getSymbolStack(child, position)];
+        const found = getMinRangeSymbol(child, position);
+        if (found)
+            return found;
     }
-    return [symbol];
+    return symbol;
+}
+
+/**
+ * 从一个符号递归查找，找到包含position的符号路径
+ */
+const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position, stack: vscode.DocumentSymbol[]): boolean => {
+    if (!symbolContainsPosition(symbol, position))
+        return false;
+
+    stack.push(symbol);
+
+    for (const child of symbol.children) {
+        const found = getSymbolStack(child, position, stack);
+        if (found)
+            return true;
+    }
+
+    return true;
 }
 
 class CachedDocument {
@@ -256,6 +276,16 @@ class CachedDocument {
         return null;
     }
 
+    public getMinRangeSymbol(position: vscode.Position): vscode.DocumentSymbol {
+        for (const symbol of this.symbols) {
+            const found = getMinRangeSymbol(symbol, position);
+            if (found) {
+                return found;
+            }
+        }
+        return null;
+    }
+
     /**
      * 获取指定位置的符号堆栈
      * @param position 
@@ -266,8 +296,9 @@ class CachedDocument {
         if (cached)
             return cached;
         for (const symbol of this.symbols) {
-            const stack = getSymbolStack(symbol, position);
-            if (stack.length > 0) {
+            const stack: vscode.DocumentSymbol[] = [];
+            const found = getSymbolStack(symbol, position, stack);
+            if (found) {
                 this.symbolStackMap.set(position, stack);
                 return stack;
             }

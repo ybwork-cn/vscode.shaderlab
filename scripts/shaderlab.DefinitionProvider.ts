@@ -13,31 +13,31 @@ import { symbolCache } from './shared.SymbolCache.js';
  * signaled by returning `undefined` or `null`.
  */
 const provideDefinition = async (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.DefinitionLink[]> => {
+    const results: vscode.DefinitionLink[] = [];
+
     // 当前光标下的单词
     const word = document.getText(document.getWordRangeAtPosition(position));
     const cached = await symbolCache.getCachedDocument(document);
     const symbolStack = cached.getSymbolStack(position);
     const target = nextSymbol(document.uri, word, symbolStack);
-    if (target != null)
-        return [target];
+    if (target) {
+        results.push(target);
+    }
 
     // 通过include跨文件定义查找
     // include时，只处理文档顶级符号
-    let found: vscode.DefinitionLink = null;
     await cached.foreachIncludeRecursion(token, document => {
-        const symbol = document.symbols.find(symbol => symbol.name === word);
-        if (symbol) {
-            found = {
+        const symbols = document.symbols.filter(symbol => symbol.name === word);
+        symbols.forEach(symbol => {
+            results.push({
                 targetUri: document.document.uri,
                 targetRange: symbol.range,
                 targetSelectionRange: symbol.selectionRange,
-            };
-        }
-        return found == null;
+            });
+        });
+        return false; // 继续查找
     });
-    if (found)
-        return [found];
-    return null;
+    return results;
 }
 
 const nextSymbol = (uri: vscode.Uri, word: string, symbolStack: readonly vscode.DocumentSymbol[]): vscode.DefinitionLink => {
