@@ -142,7 +142,7 @@ class CachedDocument {
                 if (include.target && !visited.has(include.target.fsPath)) {
                     visited.add(include.target.fsPath);
                     const targetCache = await symbolCache.getCachedDocumentByUri(include.target);
-                    const shouldContinue = await func(targetCache);
+                    const shouldContinue = func(targetCache);
                     if (!shouldContinue)
                         return;
                     includeDocuments.push(targetCache);
@@ -159,17 +159,21 @@ class CachedDocument {
         await traverse(this);
     }
 
-    // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
+    // TODO: 对于shaderlab文件，不应调用，而是应该通过符号栈查找
     public findSymbol(name: string): vscode.DocumentSymbol | null {
         if (this.symbolMap.has(name))
             return this.symbolMap.get(name);
 
-        const symbol = this.flattenedSymbols.find(sym => sym.name === name);
+        // shaderlab 文件使用扁平化符号列表查找
+        // 其他文件使用最外层符号列表查找
+        const symbols = this.document.languageId === 'shaderlab'
+            ? this.flattenedSymbols
+            : this.symbols;
+        const symbol = symbols.find(sym => sym.name === name);
         this.symbolMap.set(name, symbol);
         return symbol;
     }
 
-    // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
     public async findSymbolRecursionAsync(name: string, token: vscode.CancellationToken): Promise<SymbolLocation> {
         if (token.isCancellationRequested)
             return null;
@@ -193,12 +197,22 @@ class CachedDocument {
      * 模糊查询
      * @param lowerQueryName 包含的字符串
      */
+    // TODO: 对于shaderlab文件，不应调用，而是应该通过符号栈查找
     public querySymbols(predicate: (symbol: vscode.DocumentSymbol) => boolean): vscode.DocumentSymbol[] {
-        const symbols = this.flattenedSymbols.filter(predicate);
-        return symbols;
+        // shaderlab 文件使用扁平化符号列表查找
+        // 其他文件使用最外层符号列表查找
+        const symbols = this.document.languageId === 'shaderlab'
+            ? this.flattenedSymbols
+            : this.symbols;
+        return symbols.filter(predicate);
     }
 
-    // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
+    /**
+     * 按规则查找所有匹配的符号，并在include中递归查找（include中只查找最外层符号）
+     * @param predicate 
+     * @param token 
+     * @returns 
+     */
     public async querySymbolsRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol[]> {
         const results: vscode.DocumentSymbol[] = [];
 
@@ -217,7 +231,12 @@ class CachedDocument {
         return results;
     }
 
-    // TODO: 各个方法不应遍历，应改为根据树形结构查找，自动剪枝
+    /**
+     * 按规则查找符号，并在include中递归查找（include中只查找最外层符号）
+     * @param predicate 
+     * @param token 
+     * @returns 
+     */
     public async querySymbolRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol> {
         // 查找当前文件的符号
         const found = this.flattenedSymbols.find(predicate);
