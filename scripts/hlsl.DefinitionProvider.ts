@@ -25,21 +25,6 @@ const findDefinitionInFileChain = async (
 }
 
 /**
- * 在工作区中查找定义
- */
-const findDefinitionInWorkspace = async (word: string, token: vscode.CancellationToken): Promise<vscode.DefinitionLink | null> => {
-    const location = await symbolCache.findSymbolInWorkspace(word, token);
-    if (location) {
-        return {
-            targetUri: location.document.uri,
-            targetRange: location.symbol.range,
-            targetSelectionRange: location.symbol.selectionRange,
-        };
-    }
-    return null;
-}
-
-/**
  * 检查位置是否在 #include 指令上
  */
 const isOnIncludePath = (document: vscode.TextDocument, position: vscode.Position): boolean => {
@@ -88,16 +73,10 @@ const provideDefinition = async (
         return null;
     }
 
-    // 1. 在当前文件及其 #include 链中查找
+    // 在当前文件及其 #include 链中查找
     const chainResult = await findDefinitionInFileChain(document, word, token);
     if (chainResult) {
         return [chainResult];
-    }
-
-    // 2. 在工作区中查找
-    const workspaceResult = await findDefinitionInWorkspace(word, token);
-    if (workspaceResult) {
-        return [workspaceResult];
     }
 
     return null;

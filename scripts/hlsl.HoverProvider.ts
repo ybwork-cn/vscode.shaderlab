@@ -249,25 +249,6 @@ class HlslHoverProvider implements vscode.HoverProvider {
             return new vscode.Hover(hoverMessage);
         }
 
-        // 5. 尝试在工作区中查找
-        const workspaceResult = await symbolCache.findSymbolInWorkspace(word, token);
-        if (workspaceResult) {
-            const comment = extractDocComment(workspaceResult.document, workspaceResult.symbol.range.start.line);
-
-            const hoverMessage = new vscode.MarkdownString();
-            const defText = getSymbolDefinitionText(workspaceResult.document, workspaceResult.symbol);
-            hoverMessage.appendCodeblock(defText, 'hlsl');
-
-            if (comment) {
-                hoverMessage.appendMarkdown(`\n---\n${comment}`);
-            }
-
-            const relativePath = vscode.workspace.asRelativePath(workspaceResult.document.uri);
-            hoverMessage.appendMarkdown(`\n\n*Defined in: ${relativePath}*`);
-
-            return new vscode.Hover(hoverMessage);
-        }
-
         return null;
     }
 }

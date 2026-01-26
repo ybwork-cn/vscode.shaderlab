@@ -210,7 +210,7 @@ const provideStructFieldCompletion = async (
 
     // 查找结构体定义
     const cached = await symbolCache.getCachedDocument(document);
-    const structSymbol = await cached.querySymbolRecursion(sym => {
+    const structSymbol = await cached.queryExportedSymbolRecursion(sym => {
         return sym.kind === vscode.SymbolKind.Struct
             && sym.name === typeName;
     }, token);

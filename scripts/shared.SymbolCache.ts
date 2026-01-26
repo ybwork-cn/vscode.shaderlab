@@ -128,7 +128,9 @@ const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position
 class CachedDocument {
     readonly version: number;
     readonly document: vscode.TextDocument;
+    // TODO: private成员
     readonly symbols: readonly vscode.DocumentSymbol[];
+    // TODO: private成员
     readonly flattenedSymbols: readonly vscode.DocumentSymbol[];
     readonly includes: readonly vscode.DocumentLink[];
 
@@ -179,7 +181,9 @@ class CachedDocument {
         await traverse(this);
     }
 
-    // TODO: 对于shaderlab文件，不应调用，而是应该通过符号栈查找
+    // TODO: 只查找导出的符号
+    // - shaderlab 文件CGPROGRAM/CGINCLUDE/HLSLPROGRAM/HLSLINCLUDE内的<一级子级符号>均为导出符号
+    // - hlsl文件的所有<根符号>均为导出符号
     public findSymbol(name: string): vscode.DocumentSymbol | null {
         if (this.symbolMap.has(name))
             return this.symbolMap.get(name);
@@ -217,7 +221,7 @@ class CachedDocument {
      * 模糊查询
      * @param lowerQueryName 包含的字符串
      */
-    // TODO: 对于shaderlab文件，不应调用，而是应该通过符号栈查找
+    // TODO: 只查找导出的符号
     public querySymbols(predicate: (symbol: vscode.DocumentSymbol) => boolean): vscode.DocumentSymbol[] {
         // shaderlab 文件使用扁平化符号列表查找
         // 其他文件使用最外层符号列表查找
@@ -228,38 +232,16 @@ class CachedDocument {
     }
 
     /**
-     * 按规则查找所有匹配的符号，并在include中递归查找（include中只查找最外层符号）
+     * 按规则查找符号，并在include中递归查找
+     * - 只查找最外层符号
      * @param predicate 
      * @param token 
      * @returns 
      */
-    public async querySymbolsRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol[]> {
-        const results: vscode.DocumentSymbol[] = [];
-
+    // TODO: 只查找导出的符号
+    public async queryExportedSymbolRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol> {
         // 查找当前文件的符号
-        results.push(...this.querySymbols(predicate));
-
-        // 递归查找包含的文件
-        for (const include of this.includes) {
-            if (token.isCancellationRequested)
-                break;
-            const targetCache = await symbolCache.getCachedDocumentByUri(include.target);
-            const targetSymbols = await targetCache.querySymbolsRecursion(predicate, token);
-            results.push(...targetSymbols);
-        }
-
-        return results;
-    }
-
-    /**
-     * 按规则查找符号，并在include中递归查找（include中只查找最外层符号）
-     * @param predicate 
-     * @param token 
-     * @returns 
-     */
-    public async querySymbolRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol> {
-        // 查找当前文件的符号
-        const found = this.flattenedSymbols.find(predicate);
+        const found = this.symbols.find(predicate);
         if (found)
             return found;
 
@@ -268,7 +250,7 @@ class CachedDocument {
             if (token.isCancellationRequested)
                 break;
             const targetCache = await symbolCache.getCachedDocumentByUri(include.target);
-            const targetSymbol = await targetCache.querySymbolRecursion(predicate, token);
+            const targetSymbol = await targetCache.queryExportedSymbolRecursion(predicate, token);
             if (targetSymbol)
                 return targetSymbol;
         }
@@ -353,57 +335,6 @@ class SymbolCache {
     async getCachedDocumentByUri(uri: vscode.Uri): Promise<CachedDocument> {
         const document = await vscode.workspace.openTextDocument(uri);
         return this.getCachedDocument(document);
-    }
-
-    /**
-     * 在工作区中搜索符号
-     */
-    async searchWorkspaceSymbols(query: string, token: vscode.CancellationToken): Promise<SymbolLocation[]> {
-        const results: SymbolLocation[] = [];
-        const files = await vscode.workspace.findFiles('**/*.{shader,cginc,hlsl,hlsli,compute}', '**/node_modules/**');
-
-        for (const file of files) {
-            try {
-                if (token.isCancellationRequested)
-                    break;
-                const cached = await this.getCachedDocumentByUri(file);
-                const symbols = await cached.querySymbolsRecursion(symbol => {
-                    return symbol.name.toLowerCase().includes(query.toLowerCase());
-                }, token);
-                for (const symbol of symbols) {
-                    results.push({
-                        document: cached.document,
-                        symbol
-                    });
-                }
-            } catch (e) {
-                console.error(`Failed to search symbols in: ${file.fsPath}`, e);
-            }
-        }
-
-        return results;
-    }
-
-    /**
-     * 在工作区中按名称精确查找符号
-     */
-    async findSymbolInWorkspace(name: string, token: vscode.CancellationToken): Promise<SymbolLocation | null> {
-        const files = await vscode.workspace.findFiles('**/*.{shader,cginc,hlsl,hlsli,compute}', '**/node_modules/**');
-
-        for (const file of files) {
-            try {
-                if (token.isCancellationRequested)
-                    break;
-                const cached = await this.getCachedDocumentByUri(file);
-                const found = await cached.findSymbolRecursionAsync(name, token);
-                if (found)
-                    return found;
-            } catch (e) {
-                console.error(`Failed to find symbol in: ${file.fsPath}`, e);
-            }
-        }
-
-        return null;
     }
 
     /**
