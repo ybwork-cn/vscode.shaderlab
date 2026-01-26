@@ -6,12 +6,12 @@ import { provider } from "./shared.DocumentLinkProvider";
  * @param context
  */
 const registerDocumentLinkProvider = (context: vscode.ExtensionContext) => {
-    const hlslDocumentLinkProvider = vscode.languages.registerDocumentLinkProvider(
-        'hlsl',
+    const shaderlabDocumentLinkProvider = vscode.languages.registerDocumentLinkProvider(
+        'shaderlab',
         provider
     );
 
-    context.subscriptions.push(hlslDocumentLinkProvider);
+    context.subscriptions.push(shaderlabDocumentLinkProvider);
 }
 
 export { registerDocumentLinkProvider };
