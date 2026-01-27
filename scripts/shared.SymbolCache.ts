@@ -128,20 +128,23 @@ const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position
 class CachedDocument {
     readonly version: number;
     readonly document: vscode.TextDocument;
-    // TODO: private成员
-    readonly symbols: readonly vscode.DocumentSymbol[];
-    // TODO: private成员
-    readonly flattenedSymbols: readonly vscode.DocumentSymbol[];
+    private readonly symbols: readonly vscode.DocumentSymbol[];
+    readonly exportedSymbols: readonly vscode.DocumentSymbol[];
     readonly includes: readonly vscode.DocumentLink[];
 
-    private symbolMap: Map<string, vscode.DocumentSymbol | null> = new Map();
+    private exportedSymbolMap: Map<string, vscode.DocumentSymbol | null> = new Map();
     private symbolStackMap: Map<vscode.Position, readonly vscode.DocumentSymbol[]> = new Map();
 
     constructor(document: vscode.TextDocument, symbols: vscode.DocumentSymbol[]) {
         this.version = document.version;
         this.document = document;
         this.symbols = symbols;
-        this.flattenedSymbols = flattenSymbols(symbols);
+        // TODO: 计算shaderlab文件的导出的符号
+        // - 出现在['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']中的顶级符号
+        // 参照 /scripts/shaderlab.SemanticTokensProvider.ts
+        this.exportedSymbols = document.languageId === 'shaderlab'
+            ? flattenSymbols(symbols)
+            : this.symbols;
         this.includes = parseIncludes(document);
     }
 
@@ -181,27 +184,25 @@ class CachedDocument {
         await traverse(this);
     }
 
-    // TODO: 只查找导出的符号
-    // - shaderlab 文件CGPROGRAM/CGINCLUDE/HLSLPROGRAM/HLSLINCLUDE内的<一级子级符号>均为导出符号
-    // - hlsl文件的所有<根符号>均为导出符号
-    public findSymbol(name: string): vscode.DocumentSymbol | null {
-        if (this.symbolMap.has(name))
-            return this.symbolMap.get(name);
+    /**
+     * 查找导出的符号
+     * @param name 
+     * @returns 
+     */
+    public findExportedSymbol(name: string): vscode.DocumentSymbol | null {
+        if (this.exportedSymbolMap.has(name))
+            return this.exportedSymbolMap.get(name);
 
-        // shaderlab 文件使用扁平化符号列表查找
-        // 其他文件使用最外层符号列表查找
-        const symbols = this.document.languageId === 'shaderlab'
-            ? this.flattenedSymbols
-            : this.symbols;
-        const symbol = symbols.find(sym => sym.name === name);
-        this.symbolMap.set(name, symbol);
+        // 查找导出的符号
+        const symbol = this.exportedSymbols.find(sym => sym.name === name);
+        this.exportedSymbolMap.set(name, symbol);
         return symbol;
     }
 
     public async findSymbolRecursionAsync(name: string, token: vscode.CancellationToken): Promise<SymbolLocation> {
         if (token.isCancellationRequested)
             return null;
-        const cached = this.findSymbol(name);
+        const cached = this.findExportedSymbol(name);
         if (cached)
             return {
                 document: this.document,
@@ -218,30 +219,23 @@ class CachedDocument {
     }
 
     /**
-     * 模糊查询
-     * @param lowerQueryName 包含的字符串
+     * 模糊查询查找导出的符号
+     * @param predicate 
+     * @returns 
      */
-    // TODO: 只查找导出的符号
-    public querySymbols(predicate: (symbol: vscode.DocumentSymbol) => boolean): vscode.DocumentSymbol[] {
-        // shaderlab 文件使用扁平化符号列表查找
-        // 其他文件使用最外层符号列表查找
-        const symbols = this.document.languageId === 'shaderlab'
-            ? this.flattenedSymbols
-            : this.symbols;
-        return symbols.filter(predicate);
+    public queryExportedSymbols(predicate: (symbol: vscode.DocumentSymbol) => boolean): vscode.DocumentSymbol[] {
+        return this.exportedSymbols.filter(predicate);
     }
 
     /**
-     * 按规则查找符号，并在include中递归查找
-     * - 只查找最外层符号
+     * 查找导出的符号，并在include中递归查找
      * @param predicate 
      * @param token 
      * @returns 
      */
-    // TODO: 只查找导出的符号
     public async queryExportedSymbolRecursion(predicate: (symbol: vscode.DocumentSymbol) => boolean, token: vscode.CancellationToken): Promise<vscode.DocumentSymbol> {
         // 查找当前文件的符号
-        const found = this.symbols.find(predicate);
+        const found = this.exportedSymbols.find(predicate);
         if (found)
             return found;
 

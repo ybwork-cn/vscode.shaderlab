@@ -85,7 +85,7 @@ class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
     async provideDocumentSemanticTokens(document: vscode.TextDocument): Promise<vscode.SemanticTokens> {
         const names = ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE'];
         const cached = await symbolCache.getCachedDocument(document);
-        const cgScriptSymbols = cached.querySymbols(symbol => names.includes(symbol.name));
+        const cgScriptSymbols = cached.queryExportedSymbols(symbol => names.includes(symbol.name));
         const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
         for (const symbol of cgScriptSymbols) {
             SemanticTokens_CGPROGRAM(document, tokensBuilder, symbol);

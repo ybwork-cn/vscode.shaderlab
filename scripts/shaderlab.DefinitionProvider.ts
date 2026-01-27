@@ -27,7 +27,7 @@ const provideDefinition = async (document: vscode.TextDocument, position: vscode
     // 通过include跨文件定义查找
     // include时，只处理文档顶级符号
     await cached.foreachIncludeRecursion(token, document => {
-        const symbols = document.symbols.filter(symbol => symbol.name === word);
+        const symbols = document.queryExportedSymbols(symbol => symbol.name === word);
         symbols.forEach(symbol => {
             results.push({
                 targetUri: document.document.uri,

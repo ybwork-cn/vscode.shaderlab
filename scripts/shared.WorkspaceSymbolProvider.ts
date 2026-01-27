@@ -30,7 +30,7 @@ const provideWorkspaceSymbols = async (
         try {
             const cached = await symbolCache.getCachedDocumentByUri(file);
             const symbolInfos = cached
-                .querySymbols(symbol => {
+                .queryExportedSymbols(symbol => {
                     const name = symbol.name.toLowerCase();
                     return name.includes(lowerQuery);
                 })

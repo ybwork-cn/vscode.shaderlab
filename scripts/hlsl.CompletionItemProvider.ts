@@ -399,24 +399,6 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
             items.push(kernelSnippet);
         }
 
-        // 添加当前文档中的符号
-        const cached = await symbolCache.getCachedDocument(document);
-        for (const symbol of cached.flattenedSymbols) {
-            let kind = vscode.CompletionItemKind.Variable;
-            if (symbol.kind === vscode.SymbolKind.Function || symbol.kind === vscode.SymbolKind.Method) {
-                kind = vscode.CompletionItemKind.Function;
-            } else if (symbol.kind === vscode.SymbolKind.Struct) {
-                kind = vscode.CompletionItemKind.Struct;
-            } else if (symbol.kind === vscode.SymbolKind.Constant) {
-                kind = vscode.CompletionItemKind.Constant;
-            }
-
-            const item = new vscode.CompletionItem(symbol.name, kind);
-            item.detail = symbol.detail;
-            item.sortText = 'a_' + symbol.name; // 用户定义的符号稍后显示
-            items.push(item);
-        }
-
         return items;
     }
 
