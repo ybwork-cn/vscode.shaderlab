@@ -13,6 +13,7 @@ Shader "Custom/TestShader"
 
             #include "includes/test_include.hlsl"
             #include "missing.cginc"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
             struct appdata
             {
