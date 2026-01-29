@@ -204,6 +204,8 @@ const SemanticTokens_CGPROGRAM = (rangeInfo: SemanticTokenRangeInfo, parentSymbo
         if (match[3].length > 0) {
             const start = bracketInfo.start + match.index + match_3_start;
             const bracket = new BracketInfo(document, start, null);
+            const end = start + match[3].length;
+            bracket.set_end(end);
             SemanticTokens_params(rangeInfo, node, bracket);
         }
 

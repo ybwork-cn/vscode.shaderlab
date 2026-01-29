@@ -1,38 +1,6 @@
 
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import { documentStructureUtils } from './shared.DocumentStructure';
-
-interface DocumentSymbolInfo {
-    symbol: vscode.DocumentSymbol
-    document: vscode.TextDocument
-}
-
-const getSymbolDefine = (document: vscode.TextDocument, name: string, temp: DocumentSymbolInfo[]): vscode.ProviderResult<DocumentSymbolInfo[]> => {
-    return documentStructureUtils
-        .getDocumentSymbols(document)
-        .then(_symbols => {
-            const result: DocumentSymbolInfo[] = [...temp];
-            for (const symbol of _symbols) {
-                if (symbol.name == name || symbol.kind == vscode.SymbolKind.Module)
-                    result.push({ symbol, document });
-            }
-            return result;
-        }).then(symbols => {
-            if (symbols.length == 0)
-                return null;
-            for (const _symbol of symbols) {
-                if (_symbol.symbol.kind != vscode.SymbolKind.Module)
-                    return [_symbol];
-            }
-
-            const last = symbols.pop();
-            const path = vscode.workspace.getConfiguration().get('Unity CGIncludes Path');
-            return vscode.workspace.openTextDocument(path + "/" + last.symbol.name).then(doc => {
-                return getSymbolDefine(doc, name, symbols);
-            });
-        });
-}
+import { symbolCache } from './shared.SymbolCache.js';
 
 /**
  * 转到定义
@@ -44,48 +12,42 @@ const getSymbolDefine = (document: vscode.TextDocument, name: string, temp: Docu
  * @return A definition or a thenable that resolves to such. The lack of a result can be
  * signaled by returning `undefined` or `null`.
  */
-const provideDefinition = (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DefinitionLink[]> => {
-    return documentStructureUtils
-        .getDocumentSymbols(document)
-        .then<vscode.LocationLink[]>(symbols => {
-            for (const symbol of symbols) {
-                const symbolStack = documentStructureUtils.getSymbolStack(symbol, position);
-                const target = nextSymbol(document, symbolStack, position);
-                if (target != null)
-                    return [target];
-            }
+const provideDefinition = async (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.DefinitionLink[]> => {
+    const results: vscode.DefinitionLink[] = [];
 
-            const path = vscode.workspace.getConfiguration().get<string>('Unity CGIncludes Path');
-            if (!fs.existsSync(path))
-                return null;
-            return vscode.workspace.openTextDocument(path + "/UnityCG.cginc")
-                .then(doc => {
-                    return getSymbolDefine(doc, document.getText(document.getWordRangeAtPosition(position)), []);
-                })
-                .then<vscode.DefinitionLink[]>(symbolInfos => {
-                    const result: vscode.DefinitionLink[] = [];
-                    for (const symbolInfo of symbolInfos) {
-                        result.push({
-                            targetUri: symbolInfo.document.uri,
-                            targetRange: symbolInfo.symbol.range,
-                            targetSelectionRange: symbolInfo.symbol.selectionRange,
-                        });
-                    }
-                    return result;
-                });
-        });
-}
-
-const nextSymbol = (document: vscode.TextDocument, symbolStack: vscode.DocumentSymbol[], position: vscode.Position): vscode.DefinitionLink => {
     // 当前光标下的单词
     const word = document.getText(document.getWordRangeAtPosition(position));
+    const cached = await symbolCache.getCachedDocument(document);
+    const symbolStack = cached.getSymbolStack(position);
+    const target = nextSymbol(document.uri, word, symbolStack);
+    if (target) {
+        results.push(target);
+    }
+
+    // 通过include跨文件定义查找
+    // include时，只处理文档顶级符号
+    await cached.foreachIncludeRecursion(token, document => {
+        const symbols = document.queryExportedSymbols(symbol => symbol.name === word);
+        symbols.forEach(symbol => {
+            results.push({
+                targetUri: document.document.uri,
+                targetRange: symbol.range,
+                targetSelectionRange: symbol.selectionRange,
+            });
+        });
+        return false; // 继续查找
+    });
+    return results;
+}
+
+const nextSymbol = (uri: vscode.Uri, word: string, symbolStack: readonly vscode.DocumentSymbol[]): vscode.DefinitionLink => {
     // 倒序，由内而外查找定义
     for (let index = symbolStack.length - 1; index >= 0; index--) {
         const symbol = symbolStack[index];
         let target = symbol.children.find(symbol => symbol.name === word);
         if (target != null) {
             return {
-                targetUri: document.uri,
+                targetUri: uri,
                 targetRange: target.range,
                 targetSelectionRange: target.selectionRange,
             };
@@ -94,7 +56,7 @@ const nextSymbol = (document: vscode.TextDocument, symbolStack: vscode.DocumentS
         target = target?.children.find(symbol => symbol.name === word);
         if (target != null) {
             return {
-                targetUri: document.uri,
+                targetUri: uri,
                 targetRange: target.range,
                 targetSelectionRange: target.selectionRange,
             };

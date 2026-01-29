@@ -1,5 +1,6 @@
 
 import * as vscode from 'vscode';
+import { symbolCache } from './shared.SymbolCache.js';
 import { documentStructureUtils } from './shared.DocumentStructure.js';
 
 enum tokenType {
@@ -30,34 +31,36 @@ const tokenLegend = new vscode.SemanticTokensLegend(
     'public',       // 表示标记的语法元素是公共的。
 ]);
 
-const SemanticTokens_CGPROGRAM = (document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbol: vscode.DocumentSymbol) => {
-    const symbols = documentStructureUtils.findAllSymbols(symbol);
-    SemanticTokens_Structs(document, tokensBuilder, symbols);
-    SemanticTokens_Fields(document, tokensBuilder, symbols);
-    SemanticTokens_Variables(document, tokensBuilder, symbols);
-};
+interface FindInfo {
+    document: vscode.TextDocument;
+    tokensBuilder: vscode.SemanticTokensBuilder;
+    rootSymbols: readonly vscode.DocumentSymbol[];
+}
 
-const SemanticTokens_Structs = (document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) => {
-    symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Struct]);
-    for (const symbol of symbols) {
-        tokensBuilder.push(document.getWordRangeAtPosition(symbol.range.start), 'macro');
-        tokensBuilder.push(symbol.selectionRange, tokenType.struct);
+const SemanticTokens_CGPROGRAM = (info: FindInfo) => {
+    // 处理本级符号，字段、结构体、变量
+    for (const symbol of info.rootSymbols) {
+        if (symbol.kind === vscode.SymbolKind.Field) {
+            SemanticTokens_Type(info.document, info.tokensBuilder, symbol.range.start);
+            info.tokensBuilder.push(symbol.selectionRange, tokenType.property);
+        }
+        else if (symbol.kind === vscode.SymbolKind.Struct) {
+            info.tokensBuilder.push(info.document.getWordRangeAtPosition(symbol.range.start), 'macro');
+            info.tokensBuilder.push(symbol.selectionRange, tokenType.struct);
+        }
+        else if (symbol.kind === vscode.SymbolKind.Variable) {
+            SemanticTokens_Type(info.document, info.tokensBuilder, symbol.range.start);
+            info.tokensBuilder.push(symbol.selectionRange, tokenType.variable);
+        }
     }
-};
 
-const SemanticTokens_Variables = (document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) => {
-    symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Variable]);
-    for (const symbol of symbols) {
-        SemanticTokens_Type(document, tokensBuilder, symbol.range.start);
-        tokensBuilder.push(symbol.selectionRange, tokenType.variable);
-    }
-};
-
-const SemanticTokens_Fields = (document: vscode.TextDocument, tokensBuilder: vscode.SemanticTokensBuilder, symbols: vscode.DocumentSymbol[]) => {
-    symbols = documentStructureUtils.findSymbolsBySymbolKind(symbols, [vscode.SymbolKind.Field]);
-    for (const symbol of symbols) {
-        SemanticTokens_Type(document, tokensBuilder, symbol.range.start);
-        tokensBuilder.push(symbol.selectionRange, tokenType.property);
+    // 处理嵌套的符号
+    for (const symbol of info.rootSymbols) {
+        SemanticTokens_CGPROGRAM({
+            document: info.document,
+            tokensBuilder: info.tokensBuilder,
+            rootSymbols: symbol.children
+        });
     }
 };
 
@@ -81,19 +84,16 @@ const SemanticTokens_Type = (
 
 // 定义语义标记提供程序
 class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
-    provideDocumentSemanticTokens(document: vscode.TextDocument): vscode.ProviderResult<vscode.SemanticTokens> {
-        return documentStructureUtils
-            .getDocumentSymbols(document)
-            .then(symbols => {
-                if (symbols.length == 0)
-                    return null;
-                const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
-                const cgScriptSymbols = documentStructureUtils.findSymbolsByName(symbols, ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']);
-                for (const symbol of cgScriptSymbols) {
-                    SemanticTokens_CGPROGRAM(document, tokensBuilder, symbol);
-                }
-                return tokensBuilder.build();
-            });
+    async provideDocumentSemanticTokens(document: vscode.TextDocument): Promise<vscode.SemanticTokens> {
+        const names = ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE'];
+        const cached = await symbolCache.getCachedDocument(document);
+        const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
+        SemanticTokens_CGPROGRAM({
+            document,
+            tokensBuilder,
+            rootSymbols: cached.exportedSymbols,
+        });
+        return tokensBuilder.build();
     }
 }
 

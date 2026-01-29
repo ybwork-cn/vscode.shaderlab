@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import $ from './$.js';
-import { documentStructureUtils } from './shared.DocumentStructure.js';
+import { symbolCache } from './shared.SymbolCache.js';
 
 type FunctionDef = {
     text: string;
@@ -13,7 +13,7 @@ const getTrimedText = (document: vscode.TextDocument, range: vscode.Range): stri
     const lines = text.split('\n');
     const indent = range.start.character;
     for (let i = 1; i < lines.length; i++) {
-        lines[i] = lines[i].slice(indent);
+        lines[i] = lines[i].slice(indent).trimEnd();
     }
     return lines.join('\n');
 };
@@ -151,61 +151,53 @@ const provideFunctionHover = (functionName: string): vscode.ProviderResult<vscod
     }
 };
 
-const provideHover = (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> => {
-        //调用VSCode API获取当前光标下单词的原始定义
-        return vscode.commands
-            .executeCommand<vscode.DefinitionLink[]>('vscode.executeDefinitionProvider', document.uri, position)
-            .then<vscode.Hover>(definitions => {
-                for (const def of definitions) {
-                    if (token.isCancellationRequested)
-                        return null;
+const provideHover = async (document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.Hover> => {
+    //调用VSCode API获取当前光标下单词的原始定义
+    const definitions = await vscode.commands.executeCommand<vscode.DefinitionLink[]>('vscode.executeDefinitionProvider', document.uri, position);
 
-                    const hoverMessage = new vscode.MarkdownString();
-                    hoverMessage.isTrusted = false; // 默认值，明确写出以示清晰
-                    hoverMessage.supportHtml = false; // 确保不支持HTML，以防止安全问题
+    for (const def of definitions) {
+        if (token.isCancellationRequested)
+            return null;
 
-                    // 仅处理当前文档内的定义
-                    if (def.targetUri.toString() !== document.uri.toString())
-                        continue;
+        const hoverMessage = new vscode.MarkdownString();
+        hoverMessage.isTrusted = false; // 默认值，明确写出以示清晰
+        hoverMessage.supportHtml = false; // 确保不支持HTML，以防止安全问题
 
-                    return documentStructureUtils
-                        .getDocumentSymbols(document)
-                        .then<vscode.Hover>(symbols => {
-                            for (const symbol of symbols) {
-                                const symbolStack = documentStructureUtils.getSymbolStack(symbol, def.targetSelectionRange.start);
-                                if (symbolStack.length === 0)
-                                    continue;
-                                const target = symbolStack.at(-1);
-                                if (target.kind === vscode.SymbolKind.Method) {
-                                    // 函数显示完整函数头
-                                    let defineText = getTrimedText(document, target.range);
-                                    defineText = defineText.split('{')[0];
-                                    // 使用 fenced code block 并指定语言标识符来触发语法高亮
-                                    hoverMessage.appendCodeblock(defineText, 'shaderlab');
-                                    return new vscode.Hover(hoverMessage);
-                                }
-                                else if (target.kind === vscode.SymbolKind.Variable) {
-                                    // 变量定义后面加分号
-                                    const defineText = getTrimedText(document, def.targetRange) + ';';
-                                    // 使用 fenced code block 并指定语言标识符来触发语法高亮
-                                    hoverMessage.appendCodeblock(defineText, 'shaderlab');
-                                    return new vscode.Hover(hoverMessage);
-                                }
-                                else {
-                                    const defineText = getTrimedText(document, def.targetRange);
-                                    // 使用 fenced code block 并指定语言标识符来触发语法高亮
-                                    hoverMessage.appendCodeblock(defineText, 'shaderlab');
-                                    return new vscode.Hover(hoverMessage);
-                                }
-                            }
-                        });
-                }
+        // 从定义位置获取符号信息
+        const defDocument = await vscode.workspace.openTextDocument(def.targetUri);
+        const cached = await symbolCache.getCachedDocument(defDocument);
+        const target = cached.getMinRangeSymbol(def.targetSelectionRange.start);
+        if (!target)
+            continue;
 
-                // 如果没有找到定义，则尝试提供内置函数的悬停信息
-                const wordRange = document.getWordRangeAtPosition(position);
-                const functionName = document.getText(wordRange);
-                return provideFunctionHover(functionName);
-            });
+        // 根据符号类型生成悬停内容
+        if (target.kind === vscode.SymbolKind.Method || target.kind === vscode.SymbolKind.Function) {
+            // 函数显示完整函数头
+            let defineText = getTrimedText(defDocument, target.range);
+            defineText = defineText.split('{')[0];
+            // 使用 fenced code block 并指定语言标识符来触发语法高亮
+            hoverMessage.appendCodeblock(defineText, 'shaderlab');
+            return new vscode.Hover(hoverMessage);
+        }
+        else if (target.kind === vscode.SymbolKind.Variable) {
+            // 变量定义后面加分号
+            const defineText = getTrimedText(defDocument, def.targetRange) + ';';
+            // 使用 fenced code block 并指定语言标识符来触发语法高亮
+            hoverMessage.appendCodeblock(defineText, 'shaderlab');
+            return new vscode.Hover(hoverMessage);
+        }
+        else {
+            const defineText = getTrimedText(defDocument, def.targetRange);
+            // 使用 fenced code block 并指定语言标识符来触发语法高亮
+            hoverMessage.appendCodeblock(defineText, 'shaderlab');
+            return new vscode.Hover(hoverMessage);
+        }
+    }
+
+    // 如果没有找到定义，则尝试提供内置函数的悬停信息
+    const wordRange = document.getWordRangeAtPosition(position);
+    const functionName = document.getText(wordRange);
+    return provideFunctionHover(functionName);
 }
 
 /**

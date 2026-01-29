@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
 import { symbolCache } from './shared.SymbolCache.js';
-import { parseIncludes } from './hlsl.DefinitionProvider.js';
-import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
 import {
     HLSL_ALL_TYPES,
     HLSL_SCALAR_TYPES,
@@ -173,7 +171,7 @@ const findVariableType = (
     position: vscode.Position
 ): string | null => {
     const textBefore = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
-    
+
     // 匹配变量声明：Type variableName
     const patterns = [
         // 普通变量声明
@@ -196,53 +194,13 @@ const findVariableType = (
 }
 
 /**
- * 递归在文件链中查找结构体
- */
-const findStructInFileChain = async (
-    document: vscode.TextDocument,
-    structName: string,
-    visited: Set<string> = new Set()
-): Promise<vscode.DocumentSymbol | null> => {
-    const filePath = document.uri.fsPath;
-    if (visited.has(filePath)) {
-        return null;
-    }
-    visited.add(filePath);
-
-    // 在当前文件中查找
-    const cached = await symbolCache.getCachedSymbols(document);
-    const found = cached.flattenedSymbols.find(sym => sym.kind === vscode.SymbolKind.Struct && sym.name === structName);
-    if (found) {
-        return found;
-    }
-
-    // 在 #include 文件中查找
-    const includes = parseIncludes(document);
-    for (const includePath of includes) {
-        const resolvedUri = resolveIncludePath(document, includePath);
-        if (resolvedUri) {
-            try {
-                const includeDoc = await vscode.workspace.openTextDocument(resolvedUri);
-                const result = await findStructInFileChain(includeDoc, structName, visited);
-                if (result) {
-                    return result;
-                }
-            } catch (e) {
-                // 忽略无法打开的文件
-            }
-        }
-    }
-
-    return null;
-}
-
-/**
  * 提供结构体字段的自动完成
  */
 const provideStructFieldCompletion = async (
     document: vscode.TextDocument,
     position: vscode.Position,
-    variableName: string
+    variableName: string,
+    token: vscode.CancellationToken
 ): Promise<vscode.CompletionItem[]> => {
     // 查找变量的类型
     const typeName = findVariableType(document, variableName, position);
@@ -251,7 +209,11 @@ const provideStructFieldCompletion = async (
     }
 
     // 查找结构体定义
-    const structSymbol = await findStructInFileChain(document, typeName);
+    const cached = await symbolCache.getCachedDocument(document);
+    const structSymbol = await cached.queryExportedSymbolRecursion(sym => {
+        return sym.kind === vscode.SymbolKind.Struct
+            && sym.name === typeName;
+    }, token);
     if (!structSymbol) {
         return [];
     }
@@ -315,13 +277,13 @@ const provideSwizzleCompletion = (typeName: string): vscode.CompletionItem[] => 
 const isInSemanticPosition = (document: vscode.TextDocument, position: vscode.Position): boolean => {
     const line = document.lineAt(position.line).text;
     const textBefore = line.substring(0, position.character);
-    
+
     // 检查是否在 : 后面，但不在 :: 后面（命名空间）
     const colonMatch = textBefore.match(/:\s*(\w*)$/);
     if (colonMatch && !textBefore.endsWith('::')) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -333,7 +295,7 @@ const isComputeShader = (document: vscode.TextDocument): boolean => {
     if (ext.endsWith('.compute')) {
         return true;
     }
-    
+
     // 检查文件内容是否包含 compute shader 特征
     const text = document.getText();
     return /\[numthreads\s*\(/.test(text) || /RWTexture|RWStructuredBuffer/.test(text);
@@ -357,9 +319,9 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
             const dotMatch = linePrefix.match(/(\w+)\.\s*\w*$/);
             if (dotMatch) {
                 const variableName = dotMatch[1];
-                
+
                 // 尝试获取结构体字段
-                const fieldItems = await provideStructFieldCompletion(document, position, variableName);
+                const fieldItems = await provideStructFieldCompletion(document, position, variableName, token);
                 if (fieldItems.length > 0) {
                     return fieldItems;
                 }
@@ -379,7 +341,7 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
         // 2. 检查是否在语义位置
         if (isInSemanticPosition(document, position)) {
             const semanticItems = getSemanticCompletionItems();
-            
+
             // 如果是 compute shader，优先显示 compute 语义
             if (isComputeShader(document)) {
                 const computeSemantics = HLSL_COMPUTE_SEMANTICS.map(s => {
@@ -389,7 +351,7 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
                 });
                 return [...computeSemantics, ...semanticItems];
             }
-            
+
             return semanticItems;
         }
 
@@ -435,24 +397,6 @@ class HlslCompletionItemProvider implements vscode.CompletionItemProvider {
             kernelSnippet.documentation = new vscode.MarkdownString('创建一个计算着色器入口函数');
             kernelSnippet.sortText = '0_kernel';
             items.push(kernelSnippet);
-        }
-
-        // 添加当前文档中的符号
-        const cached = await symbolCache.getCachedSymbols(document);
-        for (const symbol of cached.flattenedSymbols) {
-            let kind = vscode.CompletionItemKind.Variable;
-            if (symbol.kind === vscode.SymbolKind.Function || symbol.kind === vscode.SymbolKind.Method) {
-                kind = vscode.CompletionItemKind.Function;
-            } else if (symbol.kind === vscode.SymbolKind.Struct) {
-                kind = vscode.CompletionItemKind.Struct;
-            } else if (symbol.kind === vscode.SymbolKind.Constant) {
-                kind = vscode.CompletionItemKind.Constant;
-            }
-
-            const item = new vscode.CompletionItem(symbol.name, kind);
-            item.detail = symbol.detail;
-            item.sortText = 'a_' + symbol.name; // 用户定义的符号稍后显示
-            items.push(item);
         }
 
         return items;

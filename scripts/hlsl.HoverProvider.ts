@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
 import { symbolCache } from './shared.SymbolCache.js';
-import { parseIncludes, findDefinitionInFileChain } from './hlsl.DefinitionProvider.js';
-import { resolveIncludePath } from './hlsl.DocumentLinkProvider.js';
 import {
     HLSL_ALL_FUNCTIONS,
     findFunctionByName,
@@ -20,7 +18,7 @@ const extractDocComment = (document: vscode.TextDocument, symbolStartLine: numbe
     // 向上查找连续的 /// 注释行
     while (lineNum >= 0) {
         const lineText = document.lineAt(lineNum).text.trim();
-        
+
         // 检查是否是 /// 注释
         if (lineText.startsWith('///')) {
             // 提取注释内容（去掉 /// 前缀）
@@ -126,28 +124,20 @@ const getSymbolDefinitionText = (
 }
 
 /**
- * 检查位置是否在 #include 指令上
- */
-const isOnIncludePath = (document: vscode.TextDocument, position: vscode.Position): boolean => {
-    const line = document.lineAt(position.line).text;
-    return /^\s*#include\s+["<]/.test(line);
-}
-
-/**
  * 检查位置是否在语义位置（: 后面的语义名称）
  */
 const getSemanticAtPosition = (document: vscode.TextDocument, position: vscode.Position): string | null => {
     const line = document.lineAt(position.line).text;
     const wordRange = document.getWordRangeAtPosition(position);
     if (!wordRange) return null;
-    
+
     const word = document.getText(wordRange);
-    
+
     // 检查这个词前面是否有冒号（语义格式：: SEMANTIC）
     const textBefore = line.substring(0, wordRange.start.character);
     if (textBefore.match(/:\s*$/)) {
         // 检查是否是已知语义
-        const semantic = HLSL_ALL_SEMANTICS.find(s => 
+        const semantic = HLSL_ALL_SEMANTICS.find(s =>
             s.name.toLowerCase() === word.toLowerCase() ||
             s.name.replace(/\d+$/, '').toLowerCase() === word.replace(/\d+$/, '').toLowerCase()
         );
@@ -155,7 +145,7 @@ const getSemanticAtPosition = (document: vscode.TextDocument, position: vscode.P
             return word;
         }
     }
-    
+
     return null;
 }
 
@@ -165,37 +155,13 @@ const getSemanticAtPosition = (document: vscode.TextDocument, position: vscode.P
 const findSymbolWithComment = async (
     document: vscode.TextDocument,
     word: string,
-    visited: Set<string> = new Set()
+    token: vscode.CancellationToken
 ): Promise<{ symbol: vscode.DocumentSymbol; document: vscode.TextDocument; comment: string | null } | null> => {
-    const filePath = document.uri.fsPath;
-    if (visited.has(filePath)) {
-        return null;
-    }
-    visited.add(filePath);
-
-    // 在当前文件中查找
-    const cached = await symbolCache.getCachedSymbols(document);
-    const found = cached.findSymbol(word);
+    const cached = await symbolCache.getCachedDocument(document);
+    const found = await cached.findSymbolRecursionAsync(word, token)
     if (found) {
-        const comment = extractDocComment(document, found.range.start.line);
-        return { symbol: found, document, comment };
-    }
-
-    // 在 #include 文件中查找
-    const includes = parseIncludes(document);
-    for (const includePath of includes) {
-        const resolvedUri = resolveIncludePath(document, includePath);
-        if (resolvedUri) {
-            try {
-                const includeDoc = await vscode.workspace.openTextDocument(resolvedUri);
-                const result = await findSymbolWithComment(includeDoc, word, visited);
-                if (result) {
-                    return result;
-                }
-            } catch (e) {
-                // 忽略无法打开的文件
-            }
-        }
+        const comment = extractDocComment(found.document, found.symbol.range.start.line);
+        return { symbol: found.symbol, document, comment };
     }
 
     return null;
@@ -211,26 +177,20 @@ class HlslHoverProvider implements vscode.HoverProvider {
         token: vscode.CancellationToken
     ): Promise<vscode.Hover | null> {
         // 1. 如果在 #include 路径上，显示文件路径信息
-        if (isOnIncludePath(document, position)) {
-            const line = document.lineAt(position.line).text;
-            const match = line.match(/#include\s+["<]([^"'>]+)["'>]/);
-            if (match) {
-                const includePath = match[1];
-                const resolvedUri = resolveIncludePath(document, includePath);
-                
+        const cached = await symbolCache.getCachedDocument(document);
+        for (const include of cached.includes) {
+            if (include.range.contains(position)) {
                 const hoverMessage = new vscode.MarkdownString();
                 hoverMessage.appendMarkdown(`**Include File**\n\n`);
-                hoverMessage.appendCodeblock(`#include "${includePath}"`, 'hlsl');
-                
-                if (resolvedUri) {
-                    hoverMessage.appendMarkdown(`\n📁 ${resolvedUri.fsPath}`);
+
+                if (include.target) {
+                    hoverMessage.appendMarkdown(`\n📁 ${include.target.fsPath}`);
                 } else {
-                    hoverMessage.appendMarkdown(`\n⚠️ 无法解析文件路径`);
+                    hoverMessage.appendMarkdown(`\n⚠️ ${include.tooltip}`);
                 }
-                
+
                 return new vscode.Hover(hoverMessage);
             }
-            return null;
         }
 
         // 获取光标下的单词
@@ -246,7 +206,7 @@ class HlslHoverProvider implements vscode.HoverProvider {
         // 2. 检查是否是语义
         const semantic = getSemanticAtPosition(document, position);
         if (semantic) {
-            const semanticDef = HLSL_ALL_SEMANTICS.find(s => 
+            const semanticDef = HLSL_ALL_SEMANTICS.find(s =>
                 s.name.toLowerCase() === semantic.toLowerCase() ||
                 s.name.replace(/\d+$/, '').toLowerCase() === semantic.replace(/\d+$/, '').toLowerCase()
             );
@@ -266,46 +226,26 @@ class HlslHoverProvider implements vscode.HoverProvider {
         }
 
         // 4. 在文档符号中查找定义（包括 #include 链）
-        const symbolInfo = await findSymbolWithComment(document, word);
+        const symbolInfo = await findSymbolWithComment(document, word, token);
         if (symbolInfo) {
             const { symbol, document: symbolDoc, comment } = symbolInfo;
             const hoverMessage = new vscode.MarkdownString();
-            
+
             // 获取定义文本
             const defText = getSymbolDefinitionText(symbolDoc, symbol);
             hoverMessage.appendCodeblock(defText, 'hlsl');
-            
+
             // 添加注释
             if (comment) {
                 hoverMessage.appendMarkdown(`\n---\n${comment}`);
             }
-            
+
             // 如果定义来自其他文件，显示文件路径
             if (symbolDoc.uri.fsPath !== document.uri.fsPath) {
                 const relativePath = vscode.workspace.asRelativePath(symbolDoc.uri);
                 hoverMessage.appendMarkdown(`\n\n*Defined in: ${relativePath}*`);
             }
-            
-            return new vscode.Hover(hoverMessage);
-        }
 
-        // 5. 尝试在工作区中查找
-        const workspaceResult = await symbolCache.findSymbolInWorkspace(word);
-        if (workspaceResult) {
-            const symbolDoc = await vscode.workspace.openTextDocument(workspaceResult.uri);
-            const comment = extractDocComment(symbolDoc, workspaceResult.symbol.range.start.line);
-            
-            const hoverMessage = new vscode.MarkdownString();
-            const defText = getSymbolDefinitionText(symbolDoc, workspaceResult.symbol);
-            hoverMessage.appendCodeblock(defText, 'hlsl');
-            
-            if (comment) {
-                hoverMessage.appendMarkdown(`\n---\n${comment}`);
-            }
-            
-            const relativePath = vscode.workspace.asRelativePath(workspaceResult.uri);
-            hoverMessage.appendMarkdown(`\n\n*Defined in: ${relativePath}*`);
-            
             return new vscode.Hover(hoverMessage);
         }
 

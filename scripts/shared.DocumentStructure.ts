@@ -97,59 +97,16 @@ const getBrackets = (text: string, start: number, root: BracketInfo, brackets: {
     return index;
 }
 
-const getDocumentSymbols = (document: vscode.TextDocument): Thenable<vscode.DocumentSymbol[]> => {
-    return vscode.commands.executeCommand<vscode.DocumentSymbol[]>('vscode.executeDocumentSymbolProvider', document.uri);
-}
-
-const findAllSymbols = (symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] => {
+const findAllSymbols = (symbols: readonly vscode.DocumentSymbol[]): readonly vscode.DocumentSymbol[] => {
     const result: vscode.DocumentSymbol[] = [];
-    result.push(symbol);
-    for (const child of symbol.children) {
-        result.push(...findAllSymbols(child));
-    }
-    return result;
-}
-
-const findSymbolsBySymbolKind = (symbols: vscode.DocumentSymbol[], kinds: vscode.SymbolKind[]): vscode.DocumentSymbol[] => {
-    const result: vscode.DocumentSymbol[] = [];
+    result.push(...symbols);
     for (const symbol of symbols) {
-        if (kinds.includes(symbol.kind))
-            result.push(symbol);
-        result.push(...findSymbolsBySymbolKind(symbol.children, kinds));
+        result.push(...findAllSymbols(symbol.children));
     }
     return result;
-}
-
-const findSymbolsByName = (symbols: vscode.DocumentSymbol[], names: string[]): vscode.DocumentSymbol[] => {
-    const result: vscode.DocumentSymbol[] = [];
-    for (const symbol of symbols) {
-        if (names.indexOf(symbol.name) >= 0)
-            result.push(symbol);
-        result.push(...findSymbolsByName(symbol.children, names));
-    }
-    return result;
-}
-
-const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
-    return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
-}
-
-const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position): vscode.DocumentSymbol[] => {
-    if (symbol == null)
-        return [];
-
-    if (!symbolContainsPosition(symbol, position))
-        return [];
-
-    for (const child of symbol.children) {
-        if (symbolContainsPosition(child, position))
-            return [symbol, ...getSymbolStack(child, position)];
-    }
-    return [symbol];
 }
 
 const documentStructureUtils = {
-    getDocumentSymbols,
     isType,
     findAllSymbols,
     getRootBracket(document: vscode.TextDocument, token: vscode.CancellationToken): BracketInfo {
@@ -158,9 +115,6 @@ const documentStructureUtils = {
         getBrackets(text, 0, rootBracket, [], token);
         return rootBracket;
     },
-    getSymbolStack,
-    findSymbolsBySymbolKind,
-    findSymbolsByName,
 }
 
 export {

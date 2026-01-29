@@ -28,9 +28,12 @@ const provideWorkspaceSymbols = async (
             break;
 
         try {
-            const cached = await symbolCache.getCachedSymbolsByUri(file);
+            const cached = await symbolCache.getCachedDocumentByUri(file);
             const symbolInfos = cached
-                .querySymbols(lowerQuery)
+                .queryExportedSymbols(symbol => {
+                    const name = symbol.name.toLowerCase();
+                    return name.includes(lowerQuery);
+                })
                 .map(symbol => new vscode.SymbolInformation(
                     symbol.name,
                     symbol.kind,
