@@ -73,14 +73,31 @@ const parseIncludes = (document: vscode.TextDocument): vscode.DocumentLink[] => 
 
 
 /**
- * 扁平化符号树
+ * 获取导出的符号
+ * - shaderlab 出现在['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']中的一级子符号
+ * - 其他文件直接使用所有顶级符号
  */
-const flattenSymbols = (symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
-    const result: vscode.DocumentSymbol[] = [];
-    for (const symbol of symbols) {
-        result.push(symbol);
-        result.push(...flattenSymbols(symbol.children));
+const getExportedSymbols = (languageId: string, symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
+    // 非 shaderlab 文件，直接返回所有顶级符号
+    if (languageId !== 'shaderlab') {
+        return symbols;
     }
+
+    // shaderlab 文件，展开特定组的一级子符号
+    const groups = ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE'];
+    const result: vscode.DocumentSymbol[] = [];
+
+    for (const symbol of symbols) {
+        // 如果是包含组，则展开其子符号
+        if (groups.includes(symbol.name)) {
+            result.push(...symbol.children);
+        }
+        // 如果不是组，则继续递归查找
+        else {
+            result.push(...getExportedSymbols(languageId, symbol.children));
+        }
+    }
+
     return result;
 }
 
@@ -128,7 +145,6 @@ const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position
 class CachedDocument {
     readonly version: number;
     readonly document: vscode.TextDocument;
-    private readonly symbols: readonly vscode.DocumentSymbol[];
     readonly exportedSymbols: readonly vscode.DocumentSymbol[];
     readonly includes: readonly vscode.DocumentLink[];
 
@@ -138,13 +154,7 @@ class CachedDocument {
     constructor(document: vscode.TextDocument, symbols: vscode.DocumentSymbol[]) {
         this.version = document.version;
         this.document = document;
-        this.symbols = symbols;
-        // TODO: 计算shaderlab文件的导出的符号
-        // - 出现在['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']中的顶级符号
-        // 参照 /scripts/shaderlab.SemanticTokensProvider.ts
-        this.exportedSymbols = document.languageId === 'shaderlab'
-            ? flattenSymbols(symbols)
-            : this.symbols;
+        this.exportedSymbols = getExportedSymbols(document.languageId, symbols);
         this.includes = parseIncludes(document);
     }
 
@@ -253,7 +263,7 @@ class CachedDocument {
     }
 
     public getMinRangeSymbol(position: vscode.Position): vscode.DocumentSymbol {
-        for (const symbol of this.symbols) {
+        for (const symbol of this.exportedSymbols) {
             const found = getMinRangeSymbol(symbol, position);
             if (found) {
                 return found;
@@ -271,7 +281,7 @@ class CachedDocument {
         const cached = this.symbolStackMap.get(position);
         if (cached)
             return cached;
-        for (const symbol of this.symbols) {
+        for (const symbol of this.exportedSymbols) {
             const stack: vscode.DocumentSymbol[] = [];
             const found = getSymbolStack(symbol, position, stack);
             if (found) {

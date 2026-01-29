@@ -97,21 +97,11 @@ const getBrackets = (text: string, start: number, root: BracketInfo, brackets: {
     return index;
 }
 
-const findAllSymbols = (symbol: vscode.DocumentSymbol): vscode.DocumentSymbol[] => {
+const findAllSymbols = (symbols: readonly vscode.DocumentSymbol[]): readonly vscode.DocumentSymbol[] => {
     const result: vscode.DocumentSymbol[] = [];
-    result.push(symbol);
-    for (const child of symbol.children) {
-        result.push(...findAllSymbols(child));
-    }
-    return result;
-}
-
-const findSymbolsBySymbolKind = (symbols: vscode.DocumentSymbol[], kinds: vscode.SymbolKind[]): vscode.DocumentSymbol[] => {
-    const result: vscode.DocumentSymbol[] = [];
+    result.push(...symbols);
     for (const symbol of symbols) {
-        if (kinds.includes(symbol.kind))
-            result.push(symbol);
-        result.push(...findSymbolsBySymbolKind(symbol.children, kinds));
+        result.push(...findAllSymbols(symbol.children));
     }
     return result;
 }
@@ -125,7 +115,6 @@ const documentStructureUtils = {
         getBrackets(text, 0, rootBracket, [], token);
         return rootBracket;
     },
-    findSymbolsBySymbolKind,
 }
 
 export {
