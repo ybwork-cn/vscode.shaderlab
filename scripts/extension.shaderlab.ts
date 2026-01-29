@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 
 import { registerDocumentSemanticTokensProvider } from './shaderlab.SemanticTokensProvider.js';
-import { registerDocumentFormattingEditProvider } from './shaderlab.FormattingEditProvider.js';
+import { registerDocumentFormattingEditProvider } from './shared.FormattingEditProvider.js';
 import { registerDefinitionProvider } from './shaderlab.DefinitionProvider.js';
 import { registerDocumentSymbolProvider } from './shaderlab.DocumentSymbolProvider.js';
 import { registerHoverProvider } from './shaderlab.HoverProvider.js';
 import { registerCompletionItemProvider } from './shaderlab.CompletionItemProvider.js';
-import { registerDocumentLinkProvider } from './shaderlab.DocumentLinkProvider.js';
+import { registerDocumentLinkProvider } from './shared.DocumentLinkProvider.js';
 
 const registerActivateCommand = (context: vscode.ExtensionContext) => {
     const activateCommand = vscode.commands.registerCommand('ybwork-shaderlab.activate', () => {
@@ -42,7 +42,7 @@ const activate = (context: vscode.ExtensionContext) => {
     // 注册文档符号提供程序
     registerDocumentSymbolProvider(context);
     // 注册格式化提供程序
-    registerDocumentFormattingEditProvider(context);
+    registerDocumentFormattingEditProvider('shaderlab', context);
     // 注册语义标记提供程序
     registerDocumentSemanticTokensProvider(context);
     // 注册代码完成提供程序
@@ -56,7 +56,7 @@ const activate = (context: vscode.ExtensionContext) => {
     // 注册格式化命令
     registerFormatCommand(context);
     // 注册文档链接提供程序
-    registerDocumentLinkProvider(context);
+    registerDocumentLinkProvider('shaderlab', context);
 
     console.log('shaderlab language support activated');
 }

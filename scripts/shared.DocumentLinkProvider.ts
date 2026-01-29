@@ -89,4 +89,17 @@ const provider: vscode.DocumentLinkProvider = {
     resolveDocumentLink,
 };
 
-export { provider };
+/**
+ * 注册 DocumentLinkProvider
+ * @param context
+ */
+const registerDocumentLinkProvider = (selector: vscode.DocumentSelector, context: vscode.ExtensionContext) => {
+    const shaderlabDocumentLinkProvider = vscode.languages.registerDocumentLinkProvider(
+        selector,
+        provider
+    );
+
+    context.subscriptions.push(shaderlabDocumentLinkProvider);
+}
+
+export { registerDocumentLinkProvider };

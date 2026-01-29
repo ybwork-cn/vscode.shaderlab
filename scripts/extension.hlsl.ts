@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { registerDocumentSymbolProvider } from './hlsl.DocumentSymbolProvider.js';
-import { registerDocumentLinkProvider } from './hlsl.DocumentLinkProvider.js';
-import { registerDocumentFormattingEditProvider } from './hlsl.FormattingEditProvider.js';
+import { registerDocumentLinkProvider } from './shared.DocumentLinkProvider.js';
+import { registerDocumentFormattingEditProvider } from './shared.FormattingEditProvider.js';
 import { registerDefinitionProvider } from './hlsl.DefinitionProvider.js';
 import { registerCompletionItemProvider } from './hlsl.CompletionItemProvider.js';
 import { registerHoverProvider } from './hlsl.HoverProvider.js';
@@ -12,9 +12,9 @@ const activate = (context: vscode.ExtensionContext) => {
     // // 符号提供
     // registerDocumentSymbolProvider(context);
     // #include 跳转
-    registerDocumentLinkProvider(context);
+    registerDocumentLinkProvider('hlsl', context);
     // 格式化
-    registerDocumentFormattingEditProvider(context);
+    registerDocumentFormattingEditProvider('hlsl', context);
     // // 定义跳转
     // registerDefinitionProvider(context);
     // // 自动完成

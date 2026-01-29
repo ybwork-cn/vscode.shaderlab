@@ -180,6 +180,19 @@ const provideDocumentFormattingEdits = (document: vscode.TextDocument, options: 
     return [textEdit];
 }
 
-export {
+const provider: vscode.DocumentFormattingEditProvider = {
     provideDocumentFormattingEdits
+};
+
+/**
+ * 格式化工具
+ */
+const registerDocumentFormattingEditProvider = (selector: vscode.DocumentSelector, context: vscode.ExtensionContext) => {
+    const documentFormattingEditProvider = vscode.languages.registerDocumentFormattingEditProvider(
+        selector,
+        provider
+    );
+    context.subscriptions.push(documentFormattingEditProvider);
 }
+
+export { registerDocumentFormattingEditProvider }
