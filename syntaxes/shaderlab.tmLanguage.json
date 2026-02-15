@@ -18,13 +18,13 @@
         },
         {
             "name": "meta.Properties.block",
-            "begin": "(Properties)",
+            "begin": "\\b(Properties)\\b",
             "beginCaptures": {
                 "1": {
                     "name": "storage.type.structure.shaderlab"
                 }
             },
-            "end": "( +})",
+            "end": "}",
             "patterns": [
                 {
                     "include": "#comments"
