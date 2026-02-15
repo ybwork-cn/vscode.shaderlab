@@ -1,7 +1,6 @@
 
 import * as vscode from 'vscode';
 import { symbolCache } from './shared.SymbolCache.js';
-import { documentStructureUtils } from './shared.DocumentStructure.js';
 
 enum tokenType {
     type = 'type',          // 表示类型。
@@ -85,7 +84,6 @@ const SemanticTokens_Type = (
 // 定义语义标记提供程序
 class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
     async provideDocumentSemanticTokens(document: vscode.TextDocument): Promise<vscode.SemanticTokens> {
-        const names = ['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE'];
         const cached = await symbolCache.getCachedDocument(document);
         const tokensBuilder = new vscode.SemanticTokensBuilder(tokenLegend);
         SemanticTokens_CGPROGRAM({
@@ -99,7 +97,7 @@ class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
 
 /**
  * 语义标记提供程序(关键字高亮)
- * @param context 
+ * @param context
  */
 const registerDocumentSemanticTokensProvider = (context: vscode.ExtensionContext) => {
     const documentSemanticTokensProvider = vscode.languages.registerDocumentSemanticTokensProvider('shaderlab',
