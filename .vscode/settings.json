@@ -2,4 +2,14 @@
     "eslint.enable": true,
     "eslint.run": "onType",
     "eslint.format.enable": true,
+    "chat.tools.terminal.autoApprove": {
+        "/^cmd /c \"npm run lint\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"npm install eslint@\\^8\\.56\\.0 @typescript-eslint/eslint-plugin@\\^6\\.0\\.0 @typescript-eslint/parser@\\^6\\.0\\.0 --save-dev\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    },
 }
