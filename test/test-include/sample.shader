@@ -1,8 +1,6 @@
 Shader "Custom/TestShader"
 {
-    Properties
-    {
-    }
+    Properties{ }
     SubShader
     {
         Pass

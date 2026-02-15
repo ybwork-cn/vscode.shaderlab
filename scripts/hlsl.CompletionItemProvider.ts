@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { symbolCache } from './shared.SymbolCache.js';
 import {
-    HLSL_ALL_TYPES,
     HLSL_SCALAR_TYPES,
     HLSL_VECTOR_TYPES,
     HLSL_MATRIX_TYPES,
@@ -12,13 +11,11 @@ import {
     HLSL_ALL_KEYWORDS,
     HLSL_ALL_FUNCTIONS,
     HLSL_ALL_SEMANTICS,
-    HLSL_COMPUTE_FUNCTIONS,
     HLSL_COMPUTE_SEMANTICS,
     createFunctionCompletionItem,
     createTypeCompletionItem,
     createKeywordCompletionItem,
     createSemanticCompletionItem,
-    HlslFunctionDef,
 } from './hlsl.Builtins.js';
 
 /**
@@ -90,7 +87,7 @@ const getTypeCompletionItems = (): vscode.CompletionItem[] => {
     }
 
     return cachedTypeItems;
-}
+};
 
 /**
  * 获取所有关键字的自动完成项
@@ -116,7 +113,7 @@ const getKeywordCompletionItems = (): vscode.CompletionItem[] => {
     }
 
     return cachedKeywordItems;
-}
+};
 
 /**
  * 获取所有函数的自动完成项
@@ -143,7 +140,7 @@ const getFunctionCompletionItems = (): vscode.CompletionItem[] => {
     });
 
     return cachedFunctionItems;
-}
+};
 
 /**
  * 获取所有语义的自动完成项
@@ -160,7 +157,7 @@ const getSemanticCompletionItems = (): vscode.CompletionItem[] => {
     });
 
     return cachedSemanticItems;
-}
+};
 
 /**
  * 查找变量的类型名
@@ -191,7 +188,7 @@ const findVariableType = (
     }
 
     return lastMatch;
-}
+};
 
 /**
  * 提供结构体字段的自动完成
@@ -228,7 +225,7 @@ const provideStructFieldCompletion = async (
         item.sortText = '0_' + field.name; // 字段优先显示
         return item;
     });
-}
+};
 
 /**
  * 提供 Swizzle 自动完成 (如 .xyz, .rgb)
@@ -269,7 +266,7 @@ const provideSwizzleCompletion = (typeName: string): vscode.CompletionItem[] => 
     }
 
     return items;
-}
+};
 
 /**
  * 检查是否在语义位置（: 后面）
@@ -285,7 +282,7 @@ const isInSemanticPosition = (document: vscode.TextDocument, position: vscode.Po
     }
 
     return false;
-}
+};
 
 /**
  * 检查是否是 Compute Shader 文件
@@ -299,7 +296,7 @@ const isComputeShader = (document: vscode.TextDocument): boolean => {
     // 检查文件内容是否包含 compute shader 特征
     const text = document.getText();
     return /\[numthreads\s*\(/.test(text) || /RWTexture|RWStructuredBuffer/.test(text);
-}
+};
 
 /**
  * HLSL 自动完成提供器
@@ -422,5 +419,5 @@ const registerCompletionItemProvider = (context: vscode.ExtensionContext) => {
     );
 
     context.subscriptions.push(hlslCompletionItemProvider);
-}
+};
 export { registerCompletionItemProvider };

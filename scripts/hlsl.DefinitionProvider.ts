@@ -22,7 +22,7 @@ const findDefinitionInFileChain = async (
         };
     }
     return null;
-}
+};
 
 /**
  * 检查位置是否在 #include 指令上
@@ -38,7 +38,7 @@ const isOnIncludePath = (document: vscode.TextDocument, position: vscode.Positio
     const pathStart = line.indexOf(includeMatch[1]);
     const pathEnd = pathStart + includeMatch[1].length;
     return position.character >= pathStart && position.character <= pathEnd;
-}
+};
 
 /**
  * 提供定义跳转
@@ -80,7 +80,7 @@ const provideDefinition = async (
     }
 
     return null;
-}
+};
 
 /**
  * 注册 HLSL Definition Provider
@@ -92,6 +92,6 @@ const registerDefinitionProvider = (context: vscode.ExtensionContext) => {
     );
 
     context.subscriptions.push(hlslDefinitionProvider);
-}
+};
 
 export { registerDefinitionProvider };

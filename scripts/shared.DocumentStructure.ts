@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 
 class BracketInfo {
     readonly document: vscode.TextDocument;
-    readonly start: number
-    private _end: number
+    readonly start: number;
+    private _end: number;
     get end() { return this._end; }
-    readonly bracketType?: '()' | '{}'
+    readonly bracketType?: '()' | '{}';
     readonly children?: BracketInfo[];
     constructor(document: vscode.TextDocument, start: number, bracketType: '()' | '{}' | null) {
         this.document = document;
@@ -46,7 +46,7 @@ const isType = (root: vscode.DocumentSymbol, position: vscode.Position, label: s
             return 'struct';
     }
     return false;
-}
+};
 
 /**
  * 获取所有成对的括号
@@ -95,7 +95,7 @@ const getBrackets = (text: string, start: number, root: BracketInfo, brackets: {
         }
     }
     return index;
-}
+};
 
 const findAllSymbols = (symbols: readonly vscode.DocumentSymbol[]): readonly vscode.DocumentSymbol[] => {
     const result: vscode.DocumentSymbol[] = [];
@@ -104,7 +104,7 @@ const findAllSymbols = (symbols: readonly vscode.DocumentSymbol[]): readonly vsc
         result.push(...findAllSymbols(symbol.children));
     }
     return result;
-}
+};
 
 const documentStructureUtils = {
     isType,
@@ -115,9 +115,9 @@ const documentStructureUtils = {
         getBrackets(text, 0, rootBracket, [], token);
         return rootBracket;
     },
-}
+};
 
 export {
     BracketInfo,
     documentStructureUtils,
-}
+};

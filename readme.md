@@ -4,7 +4,7 @@
 [![GitHub license button](https://img.shields.io/github/license/ybwork-cn/vscode.shaderlab.svg)](https://github.com/ybwork-cn/vscode.shaderlab/blob/master/LICENSE)
 
 本插件为ShaderLab语言插件
-有bug或者改进建议，请于 github 提交 issue，或者加群反馈：1082051333，谢谢！
+有bug或者改进建议，请于 github 提交 issue，或者加qq群反馈：1082051333，谢谢！
 
 ## 支持的功能
 

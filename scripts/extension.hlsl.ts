@@ -1,11 +1,6 @@
 import * as vscode from 'vscode';
-import { registerDocumentSymbolProvider } from './hlsl.DocumentSymbolProvider.js';
 import { registerDocumentLinkProvider } from './shared.DocumentLinkProvider.js';
 import { registerDocumentFormattingEditProvider } from './shared.FormattingEditProvider.js';
-import { registerDefinitionProvider } from './hlsl.DefinitionProvider.js';
-import { registerCompletionItemProvider } from './hlsl.CompletionItemProvider.js';
-import { registerHoverProvider } from './hlsl.HoverProvider.js';
-import { registerWorkspaceSymbolProvider } from './shared.WorkspaceSymbolProvider.js';
 import { registerSymbolCache } from './shared.SymbolCache.js';
 
 const activate = (context: vscode.ExtensionContext) => {
@@ -27,6 +22,6 @@ const activate = (context: vscode.ExtensionContext) => {
     registerSymbolCache(context);
 
     console.log('HLSL language support activated');
-}
+};
 
 export { activate };

@@ -38,7 +38,7 @@ const provideDefinition = async (document: vscode.TextDocument, position: vscode
         return false; // 继续查找
     });
     return results;
-}
+};
 
 const nextSymbol = (uri: vscode.Uri, word: string, symbolStack: readonly vscode.DocumentSymbol[]): vscode.DefinitionLink => {
     // 倒序，由内而外查找定义
@@ -63,7 +63,7 @@ const nextSymbol = (uri: vscode.Uri, word: string, symbolStack: readonly vscode.
         }
     }
     return null;
-}
+};
 
 /**
  * 转到定义工具
@@ -73,6 +73,6 @@ const registerDefinitionProvider = (context: vscode.ExtensionContext) => {
         { provideDefinition }
     );
     context.subscriptions.push(provider);
-}
+};
 
 export { registerDefinitionProvider };

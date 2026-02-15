@@ -62,7 +62,7 @@ const resolveWorkspaceSymbol = async (
 
 /**
  * 注册 WorkspaceSymbolProvider
- * @param context 
+ * @param context
  */
 const registerWorkspaceSymbolProvider = (context: vscode.ExtensionContext) => {
     const workspaceSymbolProvider = vscode.languages.registerWorkspaceSymbolProvider({
@@ -71,6 +71,6 @@ const registerWorkspaceSymbolProvider = (context: vscode.ExtensionContext) => {
     });
 
     context.subscriptions.push(workspaceSymbolProvider);
-}
+};
 
 export { registerWorkspaceSymbolProvider };

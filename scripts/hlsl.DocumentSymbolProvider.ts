@@ -33,7 +33,7 @@ const COMPUTE_KERNEL_REGEX = /\[\s*numthreads\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d
  */
 const isHLSLType = (typeName: string): boolean => {
     return HLSL_TYPES.has(typeName);
-}
+};
 
 /**
  * 创建 DocumentSymbol
@@ -57,18 +57,16 @@ const createSymbol = (
         document.positionAt(matchIndex + nameOffset + (nameLength || name.length))
     );
     return new vscode.DocumentSymbol(name, detail, kind, range, selectionRange);
-}
+};
 
 /**
- * 解析 HLSL 文档符号
+ * 解析 struct 定义
  */
-const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[] => {
-    const text = document.getText();
-    let match: RegExpExecArray | null;
+const parseStructs = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
     const symbols: vscode.DocumentSymbol[] = [];
-
-    // 1. 解析 struct 定义
     const regex_struct = /\bstruct\s+(\w+)\s*\{([^}]*)\}/gs;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_struct.exec(text)) !== null) {
         const structName = match[1];
         const structBody = match[2];
@@ -79,7 +77,6 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
             match.index, match[0].length, nameOffset, structName.length
         );
 
-        // 解析结构体字段
         const fieldRegex = /(\w+)\s+(\w+)(?:\s*:\s*(\w+))?(?:\s*\[\s*(\d+)\s*\])?\s*;/g;
         let fieldMatch: RegExpExecArray | null;
         const bodyOffset = match.index + match[0].indexOf('{') + 1;
@@ -104,9 +101,17 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
 
         symbols.push(structSymbol);
     }
+    return symbols;
+};
 
-    // 2. 解析 cbuffer / ConstantBuffer 定义
+/**
+ * 解析 cbuffer / tbuffer 定义
+ */
+const parseCBuffers = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_cbuffer = /\b(cbuffer|tbuffer)\s+(\w+)(?:\s*:\s*register\s*\([^)]+\))?\s*\{([^}]*)\}/gs;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_cbuffer.exec(text)) !== null) {
         const bufferType = match[1];
         const bufferName = match[2];
@@ -118,7 +123,6 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
             match.index, match[0].length, nameOffset, bufferName.length
         );
 
-        // 解析 cbuffer 内的变量
         const varRegex = /(\w+)\s+(\w+)(?:\s*\[\s*(\d+)\s*\])?\s*;/g;
         let varMatch: RegExpExecArray | null;
         const bodyOffset = match.index + match[0].indexOf('{') + 1;
@@ -141,18 +145,52 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
 
         symbols.push(cbufferSymbol);
     }
+    return symbols;
+};
 
-    // 3. 解析函数定义（改进版：支持更多参数修饰符）
+/**
+ * 解析函数参数
+ */
+const parseFunctionParams = (params: string, funcSymbol: vscode.DocumentSymbol): void => {
+    if (!params.trim()) return;
+
+    const paramParts = params.split(',');
+    for (const paramPart of paramParts) {
+        const paramMatch = /(?:(in|out|inout|uniform)\s+)?(\w+)\s+(\w+)(?:\s*:\s*(\w+))?/.exec(paramPart.trim());
+        if (paramMatch) {
+            const modifier = paramMatch[1] || '';
+            const paramType = paramMatch[2];
+            const paramName = paramMatch[3];
+            const paramSemantic = paramMatch[4] || '';
+
+            let paramDetail = paramType;
+            if (modifier) paramDetail = `${modifier} ${paramDetail}`;
+            if (paramSemantic) paramDetail += ` : ${paramSemantic}`;
+
+            const paramSymbol = new vscode.DocumentSymbol(
+                paramName, paramDetail, vscode.SymbolKind.Variable,
+                funcSymbol.range, funcSymbol.selectionRange
+            );
+            funcSymbol.children.push(paramSymbol);
+        }
+    }
+};
+
+/**
+ * 解析函数定义
+ */
+const parseFunctions = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_function = /\b(\w+)\s+(\w+)\s*\(\s*([^)]*)\s*\)(?:\s*:\s*(\w+))?\s*\{/g;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_function.exec(text)) !== null) {
         const returnType = match[1];
         const funcName = match[2];
         const params = match[3];
         const semantic = match[4] || '';
 
-        // 排除控制流语句
         if (['if', 'for', 'while', 'switch', 'return'].includes(returnType)) continue;
-        // 排除非类型
         if (!isHLSLType(returnType) && !/^[A-Z]/.test(returnType) && returnType !== 'void') continue;
 
         let detail = returnType;
@@ -164,72 +202,56 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
             match.index, match[0].length - 1, nameOffset, funcName.length
         );
 
-        // 解析函数参数
-        if (params.trim()) {
-            const paramParts = params.split(',');
-            let paramOffset = match[0].indexOf('(') + 1;
-
-            for (const paramPart of paramParts) {
-                const paramMatch = /(?:(in|out|inout|uniform)\s+)?(\w+)\s+(\w+)(?:\s*:\s*(\w+))?/.exec(paramPart.trim());
-                if (paramMatch) {
-                    const modifier = paramMatch[1] || '';
-                    const paramType = paramMatch[2];
-                    const paramName = paramMatch[3];
-                    const paramSemantic = paramMatch[4] || '';
-
-                    let paramDetail = paramType;
-                    if (modifier) paramDetail = `${modifier} ${paramDetail}`;
-                    if (paramSemantic) paramDetail += ` : ${paramSemantic}`;
-
-                    // 简化参数的位置计算
-                    const paramSymbol = new vscode.DocumentSymbol(
-                        paramName, paramDetail, vscode.SymbolKind.Variable,
-                        funcSymbol.range, funcSymbol.selectionRange
-                    );
-                    funcSymbol.children.push(paramSymbol);
-                }
-                paramOffset += paramPart.length + 1;
-            }
-        }
-
+        parseFunctionParams(params, funcSymbol);
         symbols.push(funcSymbol);
     }
+    return symbols;
+};
 
-    // 3.5 解析 Compute Shader 入口函数（带 [numthreads] 属性）
+/**
+ * 解析 Compute Shader 入口函数（带 [numthreads] 属性）
+ */
+const parseComputeKernels = (document: vscode.TextDocument, text: string, symbols: vscode.DocumentSymbol[]): void => {
     COMPUTE_KERNEL_REGEX.lastIndex = 0;
+    let match: RegExpExecArray | null;
+
     while ((match = COMPUTE_KERNEL_REGEX.exec(text)) !== null) {
         const threadX = match[1];
         const threadY = match[2];
         const threadZ = match[3];
         const kernelName = match[4];
+        const detail = `kernel [${threadX}, ${threadY}, ${threadZ}]`;
 
-        // 检查是否已经被普通函数解析器解析过
         const alreadyParsed = symbols.some(s =>
             s.name === kernelName && s.kind === vscode.SymbolKind.Function
         );
 
         if (!alreadyParsed) {
-            const detail = `kernel [${threadX}, ${threadY}, ${threadZ}]`;
             const nameOffset = match[0].indexOf(kernelName);
-
             const kernelSymbol = createSymbol(
                 document, kernelName, detail, vscode.SymbolKind.Function,
                 match.index, match[0].length, nameOffset, kernelName.length
             );
             symbols.push(kernelSymbol);
         } else {
-            // 更新已解析函数的 detail 以标记为 kernel
             const existingSymbol = symbols.find(s =>
                 s.name === kernelName && s.kind === vscode.SymbolKind.Function
             );
             if (existingSymbol) {
-                existingSymbol.detail = `kernel [${threadX}, ${threadY}, ${threadZ}]`;
+                existingSymbol.detail = detail;
             }
         }
     }
+};
 
-    // 4. 解析 #define 宏定义
+/**
+ * 解析 #define 宏定义
+ */
+const parseDefines = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_define = /^\s*#define\s+(\w+)(?:\(([^)]*)\))?\s*(.*)$/gm;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_define.exec(text)) !== null) {
         const macroName = match[1];
         const macroParams = match[2] || '';
@@ -249,9 +271,17 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
         );
         symbols.push(macroSymbol);
     }
+    return symbols;
+};
 
-    // 5. 解析 #include
+/**
+ * 解析 #include
+ */
+const parseIncludes = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_include = /^\s*#include\s+["<]([^">]+)[">]/gm;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_include.exec(text)) !== null) {
         const includePath = match[1];
         const nameOffset = match[0].indexOf(includePath);
@@ -262,16 +292,23 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
         );
         symbols.push(includeSymbol);
     }
+    return symbols;
+};
 
-    // 6. 解析全局变量（在函数和结构体外部的变量声明）
+/**
+ * 解析全局变量（在函数和结构体外部的变量声明）
+ */
+const parseGlobalVariables = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_global = /^(?!\s*(?:\/\/|\/\*|#|struct|cbuffer|tbuffer|if|for|while|return))(\s*)(?:(uniform|static|extern|const|volatile)\s+)*(\w+)\s+(\w+)(?:\s*\[\s*(\d+)\s*\])?(?:\s*:\s*register\s*\([^)]+\))?\s*;/gm;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_global.exec(text)) !== null) {
         const modifiers = match[2] || '';
         const varType = match[3];
         const varName = match[4];
         const arraySize = match[5] || '';
 
-        // 排除非类型名
         if (!isHLSLType(varType) && !/^[A-Z]/.test(varType)) continue;
 
         let detail = varType;
@@ -285,9 +322,17 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
         );
         symbols.push(varSymbol);
     }
+    return symbols;
+};
 
-    // 7. 解析 Texture/Sampler 声明
+/**
+ * 解析 Texture/Sampler 声明
+ */
+const parseTextures = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_texture = /\b(Texture2D|Texture3D|TextureCube|Texture2DArray|SamplerState|SamplerComparisonState)\s*(?:<\s*\w+\s*>)?\s+(\w+)\s*(?::\s*register\s*\([^)]+\))?\s*;/g;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_texture.exec(text)) !== null) {
         const texType = match[1];
         const texName = match[2];
@@ -299,9 +344,17 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
         );
         symbols.push(texSymbol);
     }
+    return symbols;
+};
 
-    // 8. 解析 StructuredBuffer 等
+/**
+ * 解析 StructuredBuffer 等
+ */
+const parseBuffers = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_buffer = /\b(StructuredBuffer|RWStructuredBuffer|Buffer|RWBuffer|ByteAddressBuffer|RWByteAddressBuffer)\s*<\s*(\w+)\s*>\s+(\w+)\s*(?::\s*register\s*\([^)]+\))?\s*;/g;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_buffer.exec(text)) !== null) {
         const bufferType = match[1];
         const elementType = match[2];
@@ -314,9 +367,17 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
         );
         symbols.push(bufferSymbol);
     }
+    return symbols;
+};
 
-    // 9. 解析 groupshared 变量（Compute Shader 特有）
+/**
+ * 解析 groupshared 变量（Compute Shader 特有）
+ */
+const parseGroupShared = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_groupshared = /\bgroupshared\s+(\w+)\s+(\w+)(?:\s*\[\s*(\d+)\s*\])?(?:\s*\[\s*(\d+)\s*\])?\s*;/g;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_groupshared.exec(text)) !== null) {
         const varType = match[1];
         const varName = match[2];
@@ -334,9 +395,17 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
         );
         symbols.push(varSymbol);
     }
+    return symbols;
+};
 
-    // 10. 解析 RWTexture 声明（Compute Shader 输出）
+/**
+ * 解析 RWTexture 声明（Compute Shader 输出）
+ */
+const parseRWTextures = (document: vscode.TextDocument, text: string): vscode.DocumentSymbol[] => {
+    const symbols: vscode.DocumentSymbol[] = [];
     const regex_rwTexture = /\b(RWTexture1D|RWTexture2D|RWTexture3D|RWTexture1DArray|RWTexture2DArray)\s*<\s*(\w+)\s*>\s+(\w+)\s*(?::\s*register\s*\([^)]+\))?\s*;/g;
+    let match: RegExpExecArray | null;
+
     while ((match = regex_rwTexture.exec(text)) !== null) {
         const texType = match[1];
         const elementType = match[2];
@@ -349,9 +418,35 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
         );
         symbols.push(texSymbol);
     }
+    return symbols;
+};
+
+/**
+ * 解析 HLSL 文档符号
+ */
+const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[] => {
+    const text = document.getText();
+    const symbols: vscode.DocumentSymbol[] = [
+        ...parseStructs(document, text),
+        ...parseCBuffers(document, text),
+        ...parseFunctions(document, text),
+    ];
+
+    // Compute kernels 需要访问已有 symbols 来更新 detail
+    parseComputeKernels(document, text, symbols);
+
+    symbols.push(
+        ...parseDefines(document, text),
+        ...parseIncludes(document, text),
+        ...parseGlobalVariables(document, text),
+        ...parseTextures(document, text),
+        ...parseBuffers(document, text),
+        ...parseGroupShared(document, text),
+        ...parseRWTextures(document, text),
+    );
 
     return symbols;
-}
+};
 
 /**
  * 定义文档符号
@@ -363,18 +458,18 @@ const parseHLSLSymbols = (document: vscode.TextDocument): vscode.DocumentSymbol[
  */
 const provideDocumentSymbols = (document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] => {
     return parseHLSLSymbols(document);
-}
+};
 
 /**
  * 注册功能：文档符号提供
- * @param context 
+ * @param context
  */
 const registerDocumentSymbolProvider = (context: vscode.ExtensionContext) => {
     const documentSymbolProvider = vscode.languages.registerDocumentSymbolProvider('hlsl', {
         provideDocumentSymbols
     });
     context.subscriptions.push(documentSymbolProvider);
-}
+};
 
 
 export { registerDocumentSymbolProvider };

@@ -14,7 +14,7 @@ const registerActivateCommand = (context: vscode.ExtensionContext) => {
     });
 
     context.subscriptions.push(activateCommand);
-}
+};
 
 const registerFormatCommand = (context: vscode.ExtensionContext): void => {
     const formatCommand = vscode.commands.registerCommand('ybwork-shaderlab.format', () => {
@@ -36,7 +36,7 @@ const registerFormatCommand = (context: vscode.ExtensionContext): void => {
     });
 
     context.subscriptions.push(formatCommand);
-}
+};
 
 const activate = (context: vscode.ExtensionContext) => {
     // 注册文档符号提供程序
@@ -59,6 +59,6 @@ const activate = (context: vscode.ExtensionContext) => {
     registerDocumentLinkProvider('shaderlab', context);
 
     console.log('shaderlab language support activated');
-}
+};
 
-export { activate }
+export { activate };
