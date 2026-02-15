@@ -1,0 +1,42 @@
+module.exports = {
+    root: true,
+    env: {
+        es6: true,
+        node: true,
+    },
+    parser: "@typescript-eslint/parser",
+    parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+    },
+    plugins: ["@typescript-eslint"],
+    extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+    rules: {
+        "no-const-assign": "warn",
+        "no-this-before-super": "warn",
+        "no-unreachable": "warn",
+        "constructor-super": "warn",
+        "valid-typeof": "warn",
+        complexity: ["error", 15],
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": [
+            "warn",
+            {
+                vars: "all",
+                args: "none",
+            },
+        ],
+        indent: "off",
+        "@typescript-eslint/indent": [
+            "error",
+            4,
+            {
+                SwitchCase: 1,
+            },
+        ],
+        "linebreak-style": ["off"],
+        semi: "off",
+        "@typescript-eslint/semi": ["error", "always"],
+    },
+    ignorePatterns: ["out", "dist", "**/*.d.ts"],
+};
