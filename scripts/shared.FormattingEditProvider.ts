@@ -157,10 +157,10 @@ const provideDocumentFormattingEdits = (document: vscode.TextDocument, options: 
 
     replaceByLine(lines, /(;).+/gm, (v, v1) => v.replace(v1, ';\n'));
 
-    replaceByLine(lines, /({\s*})/gm, (v, v1) => v.replace(v1, '{}'));
-    replaceByLine(lines, /.+({)(?!})/gm, (v, v1) => v.replace(v1, '\n{'));
-    replaceByLine(lines, /({)(?!}|$)/gm, (v, v1) => v.replace(v1, '{\n'));
-    replaceByLine(lines, /(?<!{)(?<=.)(})/gm, (v, v1) => v.replace(v1, '\n}'));
+    replaceByLine(lines, /({\s*})/gm, (v, v1) => v.replace(v1, '{ }'));
+    replaceByLine(lines, /.+({)(?!\s*})/gm, (v, v1) => v.replace(v1, '\n{'));
+    replaceByLine(lines, /({)(?!\s*}|$)/gm, (v, v1) => v.replace(v1, '{\n'));
+    replaceByLine(lines, /(?<!{\s*)(?<=.)(})/gm, (v, v1) => v.replace(v1, '\n}'));
     replaceByLine(lines, /(})(?!;).+/gm, (v, v1) => v.replace(v1, '}\n'));
 
     if (token.isCancellationRequested)
