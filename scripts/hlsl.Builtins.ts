@@ -245,7 +245,7 @@ export const HLSL_COMPUTE_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'DeviceMemoryBarrierWithGroupSync', signature: 'void DeviceMemoryBarrierWithGroupSync()', description: '阻塞线程直到所有设备内存访问完成并同步组内所有线程', category: 'barrier' },
     { name: 'GroupMemoryBarrier', signature: 'void GroupMemoryBarrier()', description: '阻塞线程直到所有组共享内存访问完成', category: 'barrier' },
     { name: 'GroupMemoryBarrierWithGroupSync', signature: 'void GroupMemoryBarrierWithGroupSync()', description: '阻塞线程直到所有组共享内存访问完成并同步组内所有线程', category: 'barrier' },
-    
+
     // Atomic Operations
     { name: 'InterlockedAdd', signature: 'void InterlockedAdd(inout T dest, T value, out T original)', description: '原子加法操作', category: 'atomic' },
     { name: 'InterlockedAnd', signature: 'void InterlockedAnd(inout T dest, T value, out T original)', description: '原子按位与操作', category: 'atomic' },
@@ -349,19 +349,19 @@ export const createFunctionCompletionItem = (func: HlslFunctionDef): vscode.Comp
     const item = new vscode.CompletionItem(func.name, vscode.CompletionItemKind.Function);
     item.detail = func.signature;
     item.documentation = new vscode.MarkdownString(func.description);
-    
+
     // Extract parameters for snippet
     const paramsMatch = func.signature.match(/\(([^)]*)\)/);
     if (paramsMatch && paramsMatch[1].trim()) {
         const params = paramsMatch[1].split(',').map((p, i) => {
-            const paramName = p.trim().split(/\s+/).pop()?.replace(/[\[\]]/g, '') || `param${i + 1}`;
+            const paramName = p.trim().split(/\s+/).pop()?.replace(/[[\]]/g, '') || `param${i + 1}`;
             return `\${${i + 1}:${paramName}}`;
         });
         item.insertText = new vscode.SnippetString(`${func.name}(${params.join(', ')})`);
     } else {
         item.insertText = new vscode.SnippetString(`${func.name}()`);
     }
-    
+
     return item;
 };
 

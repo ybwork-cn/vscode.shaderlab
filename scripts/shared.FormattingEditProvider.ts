@@ -5,7 +5,7 @@ type Line = {
     content: string;
     comment: string;
     indent: number;
-}
+};
 
 const splitLineAndComment = (text: string): Line => {
     const commentIndex = text.indexOf('//');
@@ -14,7 +14,7 @@ const splitLineAndComment = (text: string): Line => {
         comment: commentIndex === -1 ? '' : text.slice(commentIndex).trim(),
         indent: 0,
     };
-}
+};
 
 const replaceByLine = (lines: Line[], regex: RegExp, asyncFn: (v: string, ...others: string[]) => string): void => {
     const result: Line[] = [];
@@ -38,7 +38,7 @@ const replaceByLine = (lines: Line[], regex: RegExp, asyncFn: (v: string, ...oth
     });
     lines.length = 0;
     lines.push(...result);
-}
+};
 
 const formatLine = (line: Line): void => {
     let stringIndex = 0;
@@ -51,14 +51,14 @@ const formatLine = (line: Line): void => {
 
     text = $.replace(text, /\t/gm, () => ' ');
 
-    text = $.replace(text, /[\)\w]( *[+\-\*\/]?= *)[\(\w]/gm, (v, v1) => v.replace(v1, ` ${v1.trim()} `));
-    text = $.replace(text, /[\&\|]{2}/gm, (v) => ` ${v} `);
-    text = $.replace(text, /[\)\w]([\<\>\=\!]=?)[\(\w]/gm, (v, v1) => v.replace(v1, ` ${v1} `));
-    text = $.replace(text, /[\)\w]( *[+\-\*\/] *)[\(\w]/gm, (v, v1) => v.replace(v1, ` ${v1} `));
+    text = $.replace(text, /[)\w]( *[+\-*/]?= *)[(\w]/gm, (v, v1) => v.replace(v1, ` ${v1.trim()} `));
+    text = $.replace(text, /[&|]{2}/gm, (v) => ` ${v} `);
+    text = $.replace(text, /[)\w]([<>=!]=?)[(\w]/gm, (v, v1) => v.replace(v1, ` ${v1} `));
+    text = $.replace(text, /[)\w]( *[+\-*/] *)[(\w]/gm, (v, v1) => v.replace(v1, ` ${v1} `));
     text = $.replace(text, /:/gm, () => ` : `);
     text = $.replace(text, /\?/gm, () => ` ? `);
-    text = $.replace(text, /([+\-\*\/])\-/gm, (v, v1) => v.replace(v1, `${v1} `));
-    text = $.replace(text, /\)([+\-\*\/])/gm, (v, v1) => v.replace(v1, ` ${v1}`));
+    text = $.replace(text, /([+\-*/])-/gm, (v, v1) => v.replace(v1, `${v1} `));
+    text = $.replace(text, /\)([+\-*/])/gm, (v, v1) => v.replace(v1, ` ${v1}`));
     text = $.replace(text, /if\s*\(/gm, () => `if (`);
     text = $.replace(text, /for\s*\(/gm, () => `for (`);
     text = $.replace(text, /while\s*\(/gm, () => `while (`);
@@ -85,8 +85,9 @@ const formatLine = (line: Line): void => {
     text = $.replace(text, / +$/gm, () => '');
 
     line.content = text;
-}
+};
 
+// eslint-disable-next-line complexity
 const ResetTabs = (lines: Line[], tabSize: number): string => {
     let tabLevel = 0;
     for (let i = 0; i < lines.length; i++) {
@@ -109,7 +110,7 @@ const ResetTabs = (lines: Line[], tabSize: number): string => {
         if (i > 0 && !isBlockStart) {
             if (/^\s*if|else\b/.test(lines[i - 1].content))
                 curTabLevel++;
-            if (/^[\?\:]/.test(line.content))
+            if (/^[?:]/.test(line.content))
                 curTabLevel++;
         }
         if (tabLevel > 0 && line.content.length + line.comment.length > 0)
@@ -124,7 +125,7 @@ const ResetTabs = (lines: Line[], tabSize: number): string => {
         let padding = line.content.length % tabSize;
         if (line.content.length !== 0 && padding === 0)
             padding = tabSize;
-        let comment = line.comment.trimEnd();
+        const comment = line.comment.trimEnd();
         if (comment.length > 0)
             text += ' '.repeat(padding) + comment;
         text += '\n';
@@ -133,7 +134,7 @@ const ResetTabs = (lines: Line[], tabSize: number): string => {
     text = $.replace(text, /\n+$/, () => '\n');
 
     return text;
-}
+};
 
 const provideDocumentFormattingEdits = (document: vscode.TextDocument, options: vscode.FormattingOptions, token: vscode.CancellationToken): vscode.ProviderResult<vscode.TextEdit[]> => {
     const sourceText = document.getText();
@@ -144,7 +145,7 @@ const provideDocumentFormattingEdits = (document: vscode.TextDocument, options: 
 
     const text = $.replace(sourceText, /\r\n/g, () => '\n');
 
-    let lines: Line[] = text
+    const lines: Line[] = text
         .replaceAll(/\r/g, '')
         .split('\n')
         .map(splitLineAndComment);
@@ -178,7 +179,7 @@ const provideDocumentFormattingEdits = (document: vscode.TextDocument, options: 
 
     const textEdit = new vscode.TextEdit(fullRange, newText);
     return [textEdit];
-}
+};
 
 const provider: vscode.DocumentFormattingEditProvider = {
     provideDocumentFormattingEdits
@@ -193,6 +194,6 @@ const registerDocumentFormattingEditProvider = (selector: vscode.DocumentSelecto
         provider
     );
     context.subscriptions.push(documentFormattingEditProvider);
-}
+};
 
-export { registerDocumentFormattingEditProvider }
+export { registerDocumentFormattingEditProvider };

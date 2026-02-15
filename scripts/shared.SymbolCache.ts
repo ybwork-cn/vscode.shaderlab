@@ -28,7 +28,7 @@ const resolveIncludePath = (document: vscode.TextDocument, includePath: string):
     }
 
     return null;
-}
+};
 
 /**
  * 解析文档中的所有 #include 路径
@@ -69,7 +69,7 @@ const parseIncludes = (document: vscode.TextDocument): vscode.DocumentLink[] => 
     }
 
     return links;
-}
+};
 
 
 /**
@@ -99,12 +99,12 @@ const getExportedSymbols = (languageId: string, symbols: vscode.DocumentSymbol[]
     }
 
     return result;
-}
+};
 
 // 判断symbol是否包含position
 const symbolContainsPosition = (symbol: vscode.DocumentSymbol, position: vscode.Position): boolean => {
     return symbol.range.start.compareTo(position) <= 0 && symbol.range.end.compareTo(position) >= 0;
-}
+};
 
 /**
  * 递归获取包含position的最小范围符号
@@ -122,7 +122,7 @@ const getMinRangeSymbol = (symbol: vscode.DocumentSymbol, position: vscode.Posit
             return found;
     }
     return symbol;
-}
+};
 
 /**
  * 从一个符号递归查找，找到包含position的符号路径
@@ -140,7 +140,7 @@ const getSymbolStack = (symbol: vscode.DocumentSymbol, position: vscode.Position
     }
 
     return true;
-}
+};
 
 class CachedDocument {
     readonly version: number;
@@ -189,7 +189,7 @@ class CachedDocument {
                     return;
                 await traverse(targetCache);
             }
-        }
+        };
 
         await traverse(this);
     }
@@ -366,7 +366,7 @@ const isShaderFile = (uri: vscode.Uri): boolean => {
         ext.endsWith('.hlsl') ||
         ext.endsWith('.hlsli') ||
         ext.endsWith('.compute');
-}
+};
 
 const symbolCache = new SymbolCache();
 
@@ -388,11 +388,11 @@ const registerSymbolCache = (context: vscode.ExtensionContext) => {
         if (isShaderFile(e.document.uri)) {
             symbolCache.invalidate(e.document.uri);
         }
-    })
+    });
 
     context.subscriptions.push(symbolCache);
     context.subscriptions.push(watcher);
     context.subscriptions.push(onDidChangeTextDocument);
-}
+};
 
 export { symbolCache, registerSymbolCache };

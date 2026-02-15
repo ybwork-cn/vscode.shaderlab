@@ -8,6 +8,38 @@ interface SemanticTokenRangeInfo {
     rootSymbol: vscode.DocumentSymbol;
 }
 
+const isInsideChildRange = (position: vscode.Position, children: vscode.DocumentSymbol[]): boolean => {
+    for (const child of children) {
+        if (position.compareTo(child.range.start) >= 0 && position.compareTo(child.range.end) <= 0) {
+            return true;
+        }
+    }
+    return false;
+};
+
+const createVariableSymbol = (
+    rootSymbol: vscode.DocumentSymbol,
+    rangeStart: vscode.Position,
+    typeName: string,
+    varName: string,
+    range: vscode.Range,
+    selectionRange: vscode.Range
+): vscode.DocumentSymbol | null => {
+    // 防止 return x;
+    if (!documentStructureUtils.isType(rootSymbol, rangeStart, typeName)) {
+        return null;
+    }
+    const name = /^\w+/.exec(varName)[0];
+    let detail = typeName;
+
+    const arrayMatch = /\[\d+\]/g.exec(varName);
+    if (arrayMatch) {
+        detail += arrayMatch[0];
+    }
+
+    return new vscode.DocumentSymbol(name, detail, vscode.SymbolKind.Variable, range, selectionRange);
+};
+
 const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
     if (rangeInfo.token.isCancellationRequested)
         return;
@@ -20,14 +52,7 @@ const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol
         if (rangeInfo.token.isCancellationRequested)
             return;
         const startPosition = document.positionAt(match.index + bracketInfo.start);
-        let _exit = false;
-        for (const child of parentSymbol.children) {
-            if (startPosition.compareTo(child.range.start) >= 0 && startPosition.compareTo(child.range.end) <= 0) {
-                _exit = true;
-                break;
-            }
-        }
-        if (_exit)
+        if (isInsideChildRange(startPosition, parentSymbol.children))
             continue;
 
         const match_1_start = match[0].indexOf(match[1]);
@@ -39,16 +64,9 @@ const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol
         const range = new vscode.Range(
             document.positionAt(bracketInfo.start + match.index + match_1_start),
             document.positionAt(bracketInfo.start + match.index + match_2_start + match[2].length));
-        // 防止 return x;
-        if (documentStructureUtils.isType(rootSymbol, range.start, match[1])) {
-            const name = /^\w+/.exec(match[2])[0];
-            let detail = match[1];
 
-            let arrayMatch: RegExpExecArray;
-            if (arrayMatch = /\[\d+\]/g.exec(match[2]))
-                detail += arrayMatch[0];
-
-            const node = new vscode.DocumentSymbol(name, detail, vscode.SymbolKind.Variable, range, selectionRange);
+        const node = createVariableSymbol(rootSymbol, range.start, match[1], match[2], range, selectionRange);
+        if (node) {
             parentSymbol.children.push(node);
         }
     }
@@ -58,14 +76,7 @@ const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol
         if (rangeInfo.token.isCancellationRequested)
             return;
         const startPosition = document.positionAt(match.index + bracketInfo.start);
-        let _exit = false;
-        for (const child of parentSymbol.children) {
-            if (startPosition.compareTo(child.range.start) >= 0 && startPosition.compareTo(child.range.end) <= 0) {
-                _exit = true;
-                break;
-            }
-        }
-        if (_exit)
+        if (isInsideChildRange(startPosition, parentSymbol.children))
             continue;
 
         const match_1_start = match[0].indexOf(match[1]);
@@ -79,16 +90,8 @@ const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol
             document.positionAt(bracketInfo.start + match.index + match_1_start),
             endPosition);
 
-        // 防止 return x;
-        if (documentStructureUtils.isType(rootSymbol, range.start, match[1])) {
-            const name = /^\w+/.exec(match[2])[0];
-            let detail = match[1];
-
-            let arrayMatch: RegExpExecArray;
-            if (arrayMatch = /\[\d+\]/g.exec(match[2]))
-                detail += arrayMatch[0];
-
-            const node = new vscode.DocumentSymbol(name, detail, vscode.SymbolKind.Variable, range, selectionRange);
+        const node = createVariableSymbol(rootSymbol, range.start, match[1], match[2], range, selectionRange);
+        if (node) {
             parentSymbol.children.push(node);
         }
     }
@@ -131,7 +134,6 @@ const SemanticTokens_Struct = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
             return;
         const match_1_start = match[0].indexOf(match[1]);
         const match_2_start = match[0].indexOf(match[2], match_1_start + match[1].length);
-        const match_3_start = match[0].indexOf(match[3], match_2_start + match[2].length);
         const selectionRange = new vscode.Range(
             document.positionAt(bracketInfo.start + match.index + match_2_start),
             document.positionAt(bracketInfo.start + match.index + match_2_start + match[2].match(/\w+/)[0].length));
@@ -143,8 +145,8 @@ const SemanticTokens_Struct = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
         const name = /^\w+/.exec(match[2])[0];
         let detail = match[1];
 
-        let arrayMatch: RegExpExecArray;
-        if (arrayMatch = /\[\d+\]/g.exec(match[2]))
+        const arrayMatch = /\[\d+\]/g.exec(match[2]);
+        if (arrayMatch)
             detail += arrayMatch[0];
 
         const node = new vscode.DocumentSymbol(name, detail, vscode.SymbolKind.Field, range, selectionRange);
@@ -160,7 +162,7 @@ const SemanticTokens_CGPROGRAM = (rangeInfo: SemanticTokenRangeInfo, parentSymbo
     let match: RegExpExecArray;
 
     const regex_struct = /(?<!\/\/.*)(struct)\s*(\w+)\s*{/g;
-    while (match = regex_struct.exec(text)) {
+    while ((match = regex_struct.exec(text))) {
         if (rangeInfo.token.isCancellationRequested)
             return;
         const match_1_start = match[0].indexOf(match[1]);
@@ -182,7 +184,7 @@ const SemanticTokens_CGPROGRAM = (rangeInfo: SemanticTokenRangeInfo, parentSymbo
     }
 
     const regex_function = /(?<!\/\/.*)(\w+)\s+(\w+)\s*\((.*?)\)(?:\s*:\s*(\w+))?\s*{/g;
-    while (match = regex_function.exec(text)) {
+    while ((match = regex_function.exec(text))) {
         if (rangeInfo.token.isCancellationRequested)
             return;
         const match_1_start = match[0].indexOf(match[1]);
@@ -264,7 +266,7 @@ const SemanticTokens_SubShader = (rangeInfo: SemanticTokenRangeInfo, parentSymbo
     const text = bracketInfo.text;
     let match: RegExpExecArray;
     const regex = /(Pass)\s*{/ig;
-    while (match = regex.exec(text)) {
+    while ((match = regex.exec(text))) {
         const selectionRange = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(match.index + match[1].length + bracketInfo.start));
@@ -292,7 +294,7 @@ const SemanticTokens_Properties = (rangeInfo: SemanticTokenRangeInfo, parentSymb
     // _MainTex ("Texture", 2D) = "white" {}
     // _Radius ("Radius", Range(0,10)) = 1.0
     const regex = /(\w+)\s*\(".*?"\s*,\s*(.+?)\)\s*(?:=\s*.*)$/mg;
-    while (match = regex.exec(text)) {
+    while ((match = regex.exec(text))) {
         const selectionRange = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(match.index + match[1].length + bracketInfo.start));
@@ -312,7 +314,7 @@ const SemanticTokens_Shader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
     const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
-    if (match = /(Properties)\s*{/ig.exec(text)) {
+    if ((match = /(Properties)\s*{/ig.exec(text))) {
         const selectionRange = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(match.index + match[1].length + bracketInfo.start));
@@ -329,7 +331,7 @@ const SemanticTokens_Shader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
         SemanticTokens_Properties(rangeInfo, node, bracket);
     }
     const regex = /(SubShader)\s*{/ig;
-    while (match = regex.exec(text)) {
+    while ((match = regex.exec(text))) {
         if (rangeInfo.token.isCancellationRequested)
             return;
         const selectionRange = new vscode.Range(
@@ -354,7 +356,7 @@ const SemanticTokens_Root = (document: vscode.TextDocument, bracketInfo: Bracket
         return null;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
-    if (match = /(Shader)\s*(".*?")\s*{/ig.exec(text)) {
+    if ((match = /(Shader)\s*(".*?")\s*{/ig.exec(text))) {
         const selectionRange = new vscode.Range(
             document.positionAt(match.index + bracketInfo.start),
             document.positionAt(match.index + match[1].length + bracketInfo.start));
@@ -384,17 +386,17 @@ const provideDocumentSymbols = (document: vscode.TextDocument, token: vscode.Can
     const rootBracket = documentStructureUtils.getRootBracket(document, token);
     const documentStructure = SemanticTokens_Root(document, rootBracket, token);
     return [documentStructure];
-}
+};
 
 /**
  * 定义文档符号工具提供程序
- * @param context 
+ * @param context
  */
 const registerDocumentSymbolProvider = (context: vscode.ExtensionContext) => {
     const provider = vscode.languages.registerDocumentSymbolProvider('shaderlab',
         { provideDocumentSymbols }
     );
     context.subscriptions.push(provider);
-}
+};
 
 export { registerDocumentSymbolProvider };

@@ -9,12 +9,12 @@ const activate = (context: vscode.ExtensionContext) => {
 
     shaderlab.activate(context);
     hlsl.activate(context);
-}
+};
 
 // this method is called when your extension is deactivated
 const deactivate = () => {
     console.log('您的扩展"Beautify ShaderLab"已被释放！');
-}
+};
 
 export {
     activate,

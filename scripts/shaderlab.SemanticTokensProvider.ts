@@ -17,18 +17,18 @@ enum tokenType {
 // 定义语义标记的规则
 const tokenLegend = new vscode.SemanticTokensLegend(
     Object.keys(tokenType).filter(k => isNaN(Number(k))), [
-    'declaration',  // 用于声明语法元素，如函数、类、变量等。
-    'definition',   // 用于定义语法元素，如函数、类、变量的定义位置。
-    'readonly',     // 表示标记的语法元素是只读的。
-    'static',       // 表示标记的语法元素是静态的。
-    'async',        // 表示标记的语法元素是异步的。
-    'deprecated',   // 表示标记的语法元素已被弃用。
-    'abstract',     // 表示标记的语法元素是抽象的。
-    'optional',     // 表示标记的语法元素是可选的。
-    'private',      // 表示标记的语法元素是私有的。
-    'protected',    // 表示标记的语法元素是受保护的。
-    'public',       // 表示标记的语法元素是公共的。
-]);
+        'declaration',  // 用于声明语法元素，如函数、类、变量等。
+        'definition',   // 用于定义语法元素，如函数、类、变量的定义位置。
+        'readonly',     // 表示标记的语法元素是只读的。
+        'static',       // 表示标记的语法元素是静态的。
+        'async',        // 表示标记的语法元素是异步的。
+        'deprecated',   // 表示标记的语法元素已被弃用。
+        'abstract',     // 表示标记的语法元素是抽象的。
+        'optional',     // 表示标记的语法元素是可选的。
+        'private',      // 表示标记的语法元素是私有的。
+        'protected',    // 表示标记的语法元素是受保护的。
+        'public',       // 表示标记的语法元素是公共的。
+    ]);
 
 interface FindInfo {
     document: vscode.TextDocument;

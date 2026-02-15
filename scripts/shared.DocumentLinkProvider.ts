@@ -51,7 +51,7 @@ const resolveUnityPackagePath = (projectRoot: string, includePath: string): stri
     }
 
     return null;
-}
+};
 
 /**
  * 解析 #include 路径，返回实际文件 URI
@@ -91,7 +91,7 @@ const resolveIncludePath = (document: vscode.TextDocument, includePath: string):
     }
 
     return null;
-}
+};
 
 /**
  * 提供文档链接（#include 可点击跳转）
@@ -141,14 +141,14 @@ const provideDocumentLinks = (document: vscode.TextDocument, token: vscode.Cance
     }
 
     return links;
-}
+};
 
 /**
  * 解析链接（当用户点击时调用）
  */
 const resolveDocumentLink = (link: vscode.DocumentLink, token: vscode.CancellationToken): vscode.DocumentLink => {
     return link;
-}
+};
 
 const provider: vscode.DocumentLinkProvider = {
     provideDocumentLinks,
@@ -166,6 +166,6 @@ const registerDocumentLinkProvider = (selector: vscode.DocumentSelector, context
     );
 
     context.subscriptions.push(shaderlabDocumentLinkProvider);
-}
+};
 
 export { registerDocumentLinkProvider };

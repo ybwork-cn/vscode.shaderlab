@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { symbolCache } from './shared.SymbolCache.js';
 import {
-    HLSL_ALL_FUNCTIONS,
     findFunctionByName,
     createFunctionHover,
     HLSL_ALL_SEMANTICS,
@@ -22,7 +21,7 @@ const extractDocComment = (document: vscode.TextDocument, symbolStartLine: numbe
         // 检查是否是 /// 注释
         if (lineText.startsWith('///')) {
             // 提取注释内容（去掉 /// 前缀）
-            let commentText = lineText.substring(3).trim();
+            const commentText = lineText.substring(3).trim();
             comments.unshift(commentText);
             lineNum--;
         }
@@ -38,7 +37,7 @@ const extractDocComment = (document: vscode.TextDocument, symbolStartLine: numbe
         // 检查是否是 /** */ 风格的注释
         else if (lineText.endsWith('*/')) {
             // 查找 /** 开始
-            let blockComment: string[] = [];
+            const blockComment: string[] = [];
             while (lineNum >= 0) {
                 const blockLine = document.lineAt(lineNum).text;
                 blockComment.unshift(blockLine);
@@ -67,7 +66,7 @@ const extractDocComment = (document: vscode.TextDocument, symbolStartLine: numbe
     }
 
     return comments.length > 0 ? comments.join('\n') : null;
-}
+};
 
 /**
  * 获取符号定义的完整文本（用于 hover 显示）
@@ -81,7 +80,7 @@ const getSymbolDefinitionText = (
 
     switch (symbol.kind) {
         case vscode.SymbolKind.Function:
-        case vscode.SymbolKind.Method:
+        case vscode.SymbolKind.Method: {
             // 函数：获取函数签名（到 { 之前）
             let funcText = '';
             let line = startLine;
@@ -96,13 +95,14 @@ const getSymbolDefinitionText = (
                 line++;
             }
             return funcText || lineText;
+        }
 
         case vscode.SymbolKind.Struct:
             // 结构体：只显示 struct Name
             return `struct ${symbol.name}`;
 
         case vscode.SymbolKind.Variable:
-        case vscode.SymbolKind.Field:
+        case vscode.SymbolKind.Field: {
             // 变量/字段：显示类型和名称
             if (symbol.detail) {
                 return `${symbol.detail} ${symbol.name};`;
@@ -113,6 +113,7 @@ const getSymbolDefinitionText = (
                 return `${varMatch[1]} ${varMatch[2]};`;
             }
             return lineText.trim();
+        }
 
         case vscode.SymbolKind.Constant:
             // 宏定义
@@ -121,7 +122,7 @@ const getSymbolDefinitionText = (
         default:
             return lineText.trim();
     }
-}
+};
 
 /**
  * 检查位置是否在语义位置（: 后面的语义名称）
@@ -147,7 +148,7 @@ const getSemanticAtPosition = (document: vscode.TextDocument, position: vscode.P
     }
 
     return null;
-}
+};
 
 /**
  * 在文件链中查找符号定义和注释
@@ -158,14 +159,14 @@ const findSymbolWithComment = async (
     token: vscode.CancellationToken
 ): Promise<{ symbol: vscode.DocumentSymbol; document: vscode.TextDocument; comment: string | null } | null> => {
     const cached = await symbolCache.getCachedDocument(document);
-    const found = await cached.findSymbolRecursionAsync(word, token)
+    const found = await cached.findSymbolRecursionAsync(word, token);
     if (found) {
         const comment = extractDocComment(found.document, found.symbol.range.start.line);
         return { symbol: found.symbol, document, comment };
     }
 
     return null;
-}
+};
 
 /**
  * HLSL Hover Provider
@@ -264,6 +265,6 @@ const registerHoverProvider = (context: vscode.ExtensionContext) => {
     );
 
     context.subscriptions.push(hlslHoverProvider);
-}
+};
 
-export { registerHoverProvider }
+export { registerHoverProvider };
