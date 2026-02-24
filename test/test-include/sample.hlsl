@@ -4,5 +4,5 @@
 
 float4 main() : SV_Target
 {
-    return TestFunction();
+    return TestFunction(0);
 }

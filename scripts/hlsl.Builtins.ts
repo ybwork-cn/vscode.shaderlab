@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 /**
  * HLSL Built-in Function Definition
  */
-export interface HlslFunctionDef {
+interface HlslFunctionDef {
     name: string;
     signature: string;
     description: string;
@@ -13,7 +13,7 @@ export interface HlslFunctionDef {
 /**
  * HLSL Semantic Definition
  */
-export interface HlslSemanticDef {
+interface HlslSemanticDef {
     name: string;
     description: string;
     stage: 'vertex' | 'pixel' | 'compute' | 'geometry' | 'hull' | 'domain' | 'all';
@@ -23,13 +23,13 @@ export interface HlslSemanticDef {
 // HLSL Basic Types
 // ============================================================================
 
-export const HLSL_SCALAR_TYPES = [
+const HLSL_SCALAR_TYPES = [
     'bool', 'int', 'uint', 'half', 'float', 'double', 'dword',
     'min16float', 'min10float', 'min16int', 'min12int', 'min16uint',
     'void', 'string'
 ];
 
-export const HLSL_VECTOR_TYPES = [
+const HLSL_VECTOR_TYPES = [
     'float2', 'float3', 'float4', 'half2', 'half3', 'half4',
     'int2', 'int3', 'int4', 'uint2', 'uint3', 'uint4',
     'bool2', 'bool3', 'bool4', 'double2', 'double3', 'double4',
@@ -38,7 +38,7 @@ export const HLSL_VECTOR_TYPES = [
     'min16uint2', 'min16uint3', 'min16uint4',
 ];
 
-export const HLSL_MATRIX_TYPES = [
+const HLSL_MATRIX_TYPES = [
     'float2x2', 'float2x3', 'float2x4',
     'float3x2', 'float3x3', 'float3x4',
     'float4x2', 'float4x3', 'float4x4',
@@ -50,72 +50,55 @@ export const HLSL_MATRIX_TYPES = [
     'matrix', 'row_major', 'column_major',
 ];
 
-export const HLSL_SAMPLER_TYPES = [
+const HLSL_SAMPLER_TYPES = [
     'sampler', 'sampler1D', 'sampler2D', 'sampler3D', 'samplerCUBE',
     'sampler_state', 'SamplerState', 'SamplerComparisonState',
 ];
 
-export const HLSL_TEXTURE_TYPES = [
+const HLSL_TEXTURE_TYPES = [
     'Texture1D', 'Texture1DArray',
     'Texture2D', 'Texture2DArray', 'Texture2DMS', 'Texture2DMSArray',
     'Texture3D', 'TextureCube', 'TextureCubeArray',
 ];
 
-export const HLSL_RW_TEXTURE_TYPES = [
+const HLSL_RW_TEXTURE_TYPES = [
     'RWTexture1D', 'RWTexture1DArray',
     'RWTexture2D', 'RWTexture2DArray',
     'RWTexture3D',
 ];
 
-export const HLSL_BUFFER_TYPES = [
+const HLSL_BUFFER_TYPES = [
     'Buffer', 'RWBuffer',
     'StructuredBuffer', 'RWStructuredBuffer',
     'ByteAddressBuffer', 'RWByteAddressBuffer',
     'AppendStructuredBuffer', 'ConsumeStructuredBuffer',
 ];
 
-export const HLSL_ALL_TYPES = new Set([
-    ...HLSL_SCALAR_TYPES,
-    ...HLSL_VECTOR_TYPES,
-    ...HLSL_MATRIX_TYPES,
-    ...HLSL_SAMPLER_TYPES,
-    ...HLSL_TEXTURE_TYPES,
-    ...HLSL_RW_TEXTURE_TYPES,
-    ...HLSL_BUFFER_TYPES,
-]);
-
-/**
- * Check if a type name is a valid HLSL type
- */
-export const isHlslType = (typeName: string): boolean => {
-    return HLSL_ALL_TYPES.has(typeName);
-};
-
 // ============================================================================
 // HLSL Keywords
 // ============================================================================
 
-export const HLSL_CONTROL_KEYWORDS = [
+const HLSL_CONTROL_KEYWORDS = [
     'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default',
     'break', 'continue', 'return', 'discard', 'clip',
 ];
 
-export const HLSL_STORAGE_KEYWORDS = [
+const HLSL_STORAGE_KEYWORDS = [
     'struct', 'cbuffer', 'tbuffer', 'ConstantBuffer', 'class', 'interface', 'namespace',
 ];
 
-export const HLSL_MODIFIER_KEYWORDS = [
+const HLSL_MODIFIER_KEYWORDS = [
     'const', 'static', 'extern', 'volatile', 'inline', 'uniform', 'shared',
     'groupshared', 'precise', 'nointerpolation', 'noperspective',
     'centroid', 'sample', 'linear', 'point', 'lineadj', 'triangleadj', 'triangle',
     'in', 'out', 'inout', 'row_major', 'column_major', 'register', 'packoffset',
 ];
 
-export const HLSL_OTHER_KEYWORDS = [
+const HLSL_OTHER_KEYWORDS = [
     'true', 'false', 'NULL',
 ];
 
-export const HLSL_ALL_KEYWORDS = [
+const HLSL_ALL_KEYWORDS = [
     ...HLSL_CONTROL_KEYWORDS,
     ...HLSL_STORAGE_KEYWORDS,
     ...HLSL_MODIFIER_KEYWORDS,
@@ -126,7 +109,7 @@ export const HLSL_ALL_KEYWORDS = [
 // HLSL Built-in Functions
 // ============================================================================
 
-export const HLSL_MATH_FUNCTIONS: HlslFunctionDef[] = [
+const HLSL_MATH_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'abs', signature: 'T abs(T v)', description: '返回参数的绝对值（多个通道时分别计算）', category: 'math' },
     { name: 'acos', signature: 'T acos(T v)', description: '返回反余弦值（弧度）', category: 'math' },
     { name: 'all', signature: 'bool all(T v)', description: '如果所有分量都非零则返回 true', category: 'math' },
@@ -186,7 +169,7 @@ export const HLSL_MATH_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'trunc', signature: 'T trunc(T v)', description: '截断小数部分，向零取整', category: 'math' },
 ];
 
-export const HLSL_TEXTURE_FUNCTIONS: HlslFunctionDef[] = [
+const HLSL_TEXTURE_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'tex1D', signature: 'float4 tex1D(sampler1D s, float u)', description: '1D 纹理采样', category: 'texture' },
     { name: 'tex1Dbias', signature: 'float4 tex1Dbias(sampler1D s, float4 t)', description: '带 mip 偏移的 1D 纹理采样', category: 'texture' },
     { name: 'tex1Dgrad', signature: 'float4 tex1Dgrad(sampler1D s, float u, float ddx, float ddy)', description: '带梯度的 1D 纹理采样', category: 'texture' },
@@ -209,7 +192,7 @@ export const HLSL_TEXTURE_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'texCUBEproj', signature: 'float4 texCUBEproj(samplerCUBE s, float4 t)', description: '投影立方体贴图采样', category: 'texture' },
 ];
 
-export const HLSL_INTRINSIC_FUNCTIONS: HlslFunctionDef[] = [
+const HLSL_INTRINSIC_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'asfloat', signature: 'float asfloat(T v)', description: '将位模式重新解释为浮点数', category: 'intrinsic' },
     { name: 'asint', signature: 'int asint(T v)', description: '将位模式重新解释为整数', category: 'intrinsic' },
     { name: 'asuint', signature: 'uint asuint(T v)', description: '将位模式重新解释为无符号整数', category: 'intrinsic' },
@@ -237,7 +220,7 @@ export const HLSL_INTRINSIC_FUNCTIONS: HlslFunctionDef[] = [
 // Compute Shader Specific
 // ============================================================================
 
-export const HLSL_COMPUTE_FUNCTIONS: HlslFunctionDef[] = [
+const HLSL_COMPUTE_FUNCTIONS: HlslFunctionDef[] = [
     // Memory Barriers
     { name: 'AllMemoryBarrier', signature: 'void AllMemoryBarrier()', description: '阻塞线程直到所有内存访问完成', category: 'barrier' },
     { name: 'AllMemoryBarrierWithGroupSync', signature: 'void AllMemoryBarrierWithGroupSync()', description: '阻塞线程直到所有内存访问完成并同步组内所有线程', category: 'barrier' },
@@ -258,7 +241,7 @@ export const HLSL_COMPUTE_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'InterlockedXor', signature: 'void InterlockedXor(inout T dest, T value, out T original)', description: '原子按位异或操作', category: 'atomic' },
 ];
 
-export const HLSL_UNITY_FUNCTIONS: HlslFunctionDef[] = [
+const HLSL_UNITY_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'UnityObjectToClipPos', signature: 'float4 UnityObjectToClipPos(float4 pos)', description: '对位置进行坐标系转换：对象空间 => 裁剪空间', category: 'unity' },
     { name: 'UnityObjectToWorldNormal', signature: 'float3 UnityObjectToWorldNormal(float3 normal)', description: '对法线进行坐标系转换：对象空间 => 世界空间', category: 'unity' },
     { name: 'UnityObjectToWorldDir', signature: 'float3 UnityObjectToWorldDir(float3 dir)', description: '对方向进行坐标系转换：对象空间 => 世界空间', category: 'unity' },
@@ -273,7 +256,7 @@ export const HLSL_UNITY_FUNCTIONS: HlslFunctionDef[] = [
     { name: 'EncodeFloatRGBA', signature: 'float4 EncodeFloatRGBA(float v)', description: '将浮点值编码为 RGBA', category: 'unity' },
 ];
 
-export const HLSL_ALL_FUNCTIONS: HlslFunctionDef[] = [
+const HLSL_ALL_FUNCTIONS: HlslFunctionDef[] = [
     ...HLSL_MATH_FUNCTIONS,
     ...HLSL_TEXTURE_FUNCTIONS,
     ...HLSL_INTRINSIC_FUNCTIONS,
@@ -285,7 +268,7 @@ export const HLSL_ALL_FUNCTIONS: HlslFunctionDef[] = [
 // HLSL Semantics
 // ============================================================================
 
-export const HLSL_VERTEX_SEMANTICS: HlslSemanticDef[] = [
+const HLSL_VERTEX_SEMANTICS: HlslSemanticDef[] = [
     { name: 'POSITION', description: '顶点位置', stage: 'vertex' },
     { name: 'NORMAL', description: '法线向量', stage: 'vertex' },
     { name: 'TANGENT', description: '切线向量', stage: 'vertex' },
@@ -305,7 +288,7 @@ export const HLSL_VERTEX_SEMANTICS: HlslSemanticDef[] = [
     { name: 'BLENDINDICES', description: '混合索引', stage: 'vertex' },
 ];
 
-export const HLSL_SYSTEM_SEMANTICS: HlslSemanticDef[] = [
+const HLSL_SYSTEM_SEMANTICS: HlslSemanticDef[] = [
     { name: 'SV_Position', description: '裁剪空间位置（顶点着色器输出/像素着色器输入）', stage: 'all' },
     { name: 'SV_Target', description: '渲染目标输出', stage: 'pixel' },
     { name: 'SV_Target0', description: '渲染目标 0', stage: 'pixel' },
@@ -325,14 +308,14 @@ export const HLSL_SYSTEM_SEMANTICS: HlslSemanticDef[] = [
     { name: 'SV_ViewportArrayIndex', description: '视口数组索引', stage: 'all' },
 ];
 
-export const HLSL_COMPUTE_SEMANTICS: HlslSemanticDef[] = [
+const HLSL_COMPUTE_SEMANTICS: HlslSemanticDef[] = [
     { name: 'SV_DispatchThreadID', description: '全局线程 ID（整个 Dispatch 范围）', stage: 'compute' },
     { name: 'SV_GroupID', description: '线程组 ID', stage: 'compute' },
     { name: 'SV_GroupThreadID', description: '组内线程 ID', stage: 'compute' },
     { name: 'SV_GroupIndex', description: '组内线程一维索引', stage: 'compute' },
 ];
 
-export const HLSL_ALL_SEMANTICS: HlslSemanticDef[] = [
+const HLSL_ALL_SEMANTICS: HlslSemanticDef[] = [
     ...HLSL_VERTEX_SEMANTICS,
     ...HLSL_SYSTEM_SEMANTICS,
     ...HLSL_COMPUTE_SEMANTICS,
@@ -345,7 +328,7 @@ export const HLSL_ALL_SEMANTICS: HlslSemanticDef[] = [
 /**
  * Create a completion item for an HLSL function
  */
-export const createFunctionCompletionItem = (func: HlslFunctionDef): vscode.CompletionItem => {
+const createFunctionCompletionItem = (func: HlslFunctionDef): vscode.CompletionItem => {
     const item = new vscode.CompletionItem(func.name, vscode.CompletionItemKind.Function);
     item.detail = func.signature;
     item.documentation = new vscode.MarkdownString(func.description);
@@ -368,7 +351,7 @@ export const createFunctionCompletionItem = (func: HlslFunctionDef): vscode.Comp
 /**
  * Create a completion item for an HLSL type
  */
-export const createTypeCompletionItem = (typeName: string): vscode.CompletionItem => {
+const createTypeCompletionItem = (typeName: string): vscode.CompletionItem => {
     const item = new vscode.CompletionItem(typeName, vscode.CompletionItemKind.TypeParameter);
     item.detail = 'HLSL Type';
     return item;
@@ -377,7 +360,7 @@ export const createTypeCompletionItem = (typeName: string): vscode.CompletionIte
 /**
  * Create a completion item for an HLSL keyword
  */
-export const createKeywordCompletionItem = (keyword: string): vscode.CompletionItem => {
+const createKeywordCompletionItem = (keyword: string): vscode.CompletionItem => {
     const item = new vscode.CompletionItem(keyword, vscode.CompletionItemKind.Keyword);
     item.detail = 'HLSL Keyword';
     return item;
@@ -386,7 +369,7 @@ export const createKeywordCompletionItem = (keyword: string): vscode.CompletionI
 /**
  * Create a completion item for an HLSL semantic
  */
-export const createSemanticCompletionItem = (semantic: HlslSemanticDef): vscode.CompletionItem => {
+const createSemanticCompletionItem = (semantic: HlslSemanticDef): vscode.CompletionItem => {
     const item = new vscode.CompletionItem(semantic.name, vscode.CompletionItemKind.EnumMember);
     item.detail = `Semantic (${semantic.stage})`;
     item.documentation = new vscode.MarkdownString(semantic.description);
@@ -396,18 +379,38 @@ export const createSemanticCompletionItem = (semantic: HlslSemanticDef): vscode.
 /**
  * Find a function definition by name
  */
-export const findFunctionByName = (name: string): HlslFunctionDef | undefined => {
+const findFunctionByName = (name: string): HlslFunctionDef | undefined => {
     return HLSL_ALL_FUNCTIONS.find(f => f.name === name);
 };
 
 /**
  * Create a hover for an HLSL built-in function
  */
-export const createFunctionHover = (func: HlslFunctionDef): vscode.Hover => {
+const createFunctionHover = (func: HlslFunctionDef): vscode.Hover => {
     const hoverMessage = new vscode.MarkdownString();
     hoverMessage.isTrusted = false;
     hoverMessage.supportHtml = false;
     hoverMessage.appendCodeblock(func.signature, 'hlsl');
     hoverMessage.appendMarkdown(func.description);
     return new vscode.Hover(hoverMessage);
+};
+
+export {
+    HLSL_SCALAR_TYPES,
+    HLSL_VECTOR_TYPES,
+    HLSL_MATRIX_TYPES,
+    HLSL_SAMPLER_TYPES,
+    HLSL_TEXTURE_TYPES,
+    HLSL_RW_TEXTURE_TYPES,
+    HLSL_BUFFER_TYPES,
+    HLSL_ALL_KEYWORDS,
+    HLSL_ALL_FUNCTIONS,
+    HLSL_COMPUTE_SEMANTICS,
+    HLSL_ALL_SEMANTICS,
+    createFunctionCompletionItem,
+    createTypeCompletionItem,
+    createKeywordCompletionItem,
+    createSemanticCompletionItem,
+    findFunctionByName,
+    createFunctionHover,
 };

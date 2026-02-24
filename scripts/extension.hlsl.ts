@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
+import { registerDocumentSymbolProvider } from './hlsl.DocumentSymbolProvider.js';
 import { registerDocumentLinkProvider } from './shared.DocumentLinkProvider.js';
 import { registerDocumentFormattingEditProvider } from './shared.FormattingEditProvider.js';
 import { registerSymbolCache } from './shared.SymbolCache.js';
 
 const activate = (context: vscode.ExtensionContext) => {
-    // // 符号提供
-    // registerDocumentSymbolProvider(context);
+    // 符号提供
+    registerDocumentSymbolProvider(context);
     // #include 跳转
     registerDocumentLinkProvider('hlsl', context);
     // 格式化

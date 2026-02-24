@@ -10,6 +10,7 @@ import {
  * 从符号定义位置提取 /// 注释
  * 向上查找连续的 /// 注释行
  */
+// TODO: 和shaderlab统一，抽象为shared.HoverProvider.ts
 const extractDocComment = (document: vscode.TextDocument, symbolStartLine: number): string | null => {
     const comments: string[] = [];
     let lineNum = symbolStartLine - 1;
