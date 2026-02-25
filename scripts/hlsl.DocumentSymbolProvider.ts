@@ -31,60 +31,6 @@ const createSymbol = (
 };
 
 /**
- * 解析 cbuffer / tbuffer 定义
- */
-const SemanticTokens_CBuffers = (
-    rangeInfo: SemanticTokenRangeInfo,
-    parentSymbol: vscode.DocumentSymbol,
-    bracketInfo: BracketInfo
-) => {
-    if (rangeInfo.token.isCancellationRequested)
-        return;
-    const { document } = rangeInfo;
-    const text = bracketInfo.text;
-    const regex_cbuffer = /\b(cbuffer|tbuffer)\s+(\w+)(?:\s*:\s*register\s*\([^)]+\))?\s*\{([^}]*)\}/gs;
-    let match: RegExpExecArray | null;
-
-    while ((match = regex_cbuffer.exec(text)) !== null) {
-        if (rangeInfo.token.isCancellationRequested)
-            return;
-        const bufferType = match[1];
-        const bufferName = match[2];
-        const bufferBody = match[3];
-        const nameOffset = match[0].indexOf(bufferName);
-
-        const cbufferSymbol = createSymbol(
-            document, bufferName, bufferType, vscode.SymbolKind.Struct,
-            bracketInfo.start + match.index, match[0].length, nameOffset, bufferName.length
-        );
-
-        const varRegex = /(\w+)\s+(\w+)(?:\s*\[\s*(\d+)\s*\])?\s*;/g;
-        let varMatch: RegExpExecArray | null;
-        const bodyOffset = bracketInfo.start + match.index + match[0].indexOf('{') + 1;
-
-        while ((varMatch = varRegex.exec(bufferBody)) !== null) {
-            if (rangeInfo.token.isCancellationRequested)
-                return;
-            const varType = varMatch[1];
-            const varName = varMatch[2];
-            const arraySize = varMatch[3] || '';
-
-            let detail = varType;
-            if (arraySize) detail += `[${arraySize}]`;
-
-            const varSymbol = createSymbol(
-                document, varName, detail, vscode.SymbolKind.Field,
-                bodyOffset + varMatch.index, varMatch[0].length,
-                varMatch[0].indexOf(varName), varName.length
-            );
-            cbufferSymbol.children.push(varSymbol);
-        }
-
-        parentSymbol.children.push(cbufferSymbol);
-    }
-};
-
-/**
  * 解析 #define 宏定义
  */
 const SemanticTokens_Defines = (
@@ -194,7 +140,6 @@ const SemanticTokens_HLSL = (
     if (rangeInfo.token.isCancellationRequested)
         return;
     SemanticTokens_Script(rangeInfo, parentSymbol, bracketInfo);
-    SemanticTokens_CBuffers(rangeInfo, parentSymbol, bracketInfo);
 
     SemanticTokens_Defines(rangeInfo, parentSymbol, bracketInfo);
     SemanticTokens_Textures(rangeInfo, parentSymbol, bracketInfo);

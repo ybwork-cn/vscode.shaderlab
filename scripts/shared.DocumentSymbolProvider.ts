@@ -4,7 +4,7 @@ import {
     documentStructureUtils
 } from './shared.DocumentStructure.js';
 
-// TODO: 支持cbuffer/tbuffer定义
+// TODO: 支持CBUFFER_START定义
 
 interface SemanticTokenRangeInfo {
     document: vscode.TextDocument;
@@ -60,7 +60,11 @@ const createVariableSymbol = (
     return new vscode.DocumentSymbol(name, detail, vscode.SymbolKind.Variable, range, selectionRange);
 };
 
-const SemanticTokens_variable = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+const SemanticTokens_variable = (
+    rangeInfo: SemanticTokenRangeInfo,
+    parentSymbol: vscode.DocumentSymbol,
+    bracketInfo: BracketInfo
+) => {
     if (rangeInfo.token.isCancellationRequested)
         return;
     const { document, rootSymbol } = rangeInfo;
@@ -137,6 +141,51 @@ const SemanticTokens_params = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
         );
         const node = new vscode.DocumentSymbol(match[3], match[2], vscode.SymbolKind.Variable, range, selectionRange);
         parentSymbol.children.push(node);
+    }
+};
+
+const SemanticTokens_CBuffer_TBuffer = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo): void => {
+    if (rangeInfo.token.isCancellationRequested)
+        return;
+    const { document } = rangeInfo;
+    const text = bracketInfo.text;
+    let match: RegExpExecArray;
+
+    const regex_buffer = /(?<!\/\/.*)\b(cbuffer|tbuffer)\s+(\w+)\s*\{/g;
+    while ((match = regex_buffer.exec(text))) {
+        if (rangeInfo.token.isCancellationRequested)
+            return;
+        const end = match[0].length - 1 + match.index + bracketInfo.start;
+        const bracket = bracketInfo.children.find(item => item.start == end);
+        if (!bracket)
+            continue;
+
+        // 创建符号
+        const selectionRange = createSelectionRangeFromMatch(document, bracketInfo.start + match.index, match[0].indexOf(match[1]), match[1].length);
+        const range = createRangeFromOffsets(document, bracketInfo.start + match.index, bracket.end);
+        const bufferNode = new vscode.DocumentSymbol(match[2], match[1], vscode.SymbolKind.Struct, range, selectionRange);
+        parentSymbol.children.push(bufferNode);
+
+        const bufferText = bracket.text;
+        let fieldMatch: RegExpExecArray;
+        const regex_field = /(?<!\/\/.*)(\w+)\s+(\w+(?:\s*\[\s*\d+\s*\])?)(?:\s*:\s*[^;]+)?\s*;/g;
+        while ((fieldMatch = regex_field.exec(bufferText))) {
+            if (rangeInfo.token.isCancellationRequested)
+                return;
+
+            const match_1_start = fieldMatch[0].indexOf(fieldMatch[1]);
+            const match_2_start = fieldMatch[0].indexOf(fieldMatch[2], match_1_start + fieldMatch[1].length);
+            const baseNameLength = fieldMatch[2].match(/\w+/)[0].length;
+            const selectionRange = createSelectionRangeFromMatch(document, bracket.start + fieldMatch.index, match_2_start, baseNameLength);
+            const range = createRangeFromOffsets(
+                document,
+                bracket.start + fieldMatch.index + match_1_start,
+                bracket.start + fieldMatch.index + match_2_start + fieldMatch[2].length
+            );
+
+            const fieldNode = new vscode.DocumentSymbol(fieldMatch[1], fieldMatch[2], vscode.SymbolKind.Field, range, selectionRange);
+            bufferNode.children.push(fieldNode);
+        }
     }
 };
 
@@ -230,6 +279,7 @@ const SemanticTokens_Script = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: 
         SemanticTokens_variable(rangeInfo, node, bracket);
     }
 
+    SemanticTokens_CBuffer_TBuffer(rangeInfo, parentSymbol, bracketInfo);
     SemanticTokens_variable(rangeInfo, parentSymbol, bracketInfo);
 };
 

@@ -77,6 +77,7 @@ const parseIncludes = (document: vscode.TextDocument): vscode.DocumentLink[] => 
  * - shaderlab 出现在['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']中的一级子符号
  * - 其他文件直接使用所有顶级符号
  */
+// TODO: 如果是cbuffer/tbuffer定义，应该导出内部一级子符号而不是cbuffer/tbuffer符号
 const getExportedSymbols = (languageId: string, symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
     // 非 shaderlab 文件，直接返回所有顶级符号
     if (languageId !== 'shaderlab') {
