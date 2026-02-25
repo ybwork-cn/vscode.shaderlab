@@ -4,6 +4,8 @@ import {
     documentStructureUtils
 } from './shared.DocumentStructure.js';
 
+// TODO: 支持cbuffer/tbuffer定义
+
 interface SemanticTokenRangeInfo {
     document: vscode.TextDocument;
     token: vscode.CancellationToken;
