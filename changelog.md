@@ -1,3 +1,12 @@
+#### v2.0.1 `2026.2.15`
+- 修复bug：{}内为空时，格式化逻辑异常
+- 修复bug：Properties{}内为空时，其余代码的tmLanguage显示异常
+- 引入eslint
+- 引入github actions，自动执行eslint检查和单元测试以及打包
+
+#### v2.0.0 `2026.1.29`
+- 重构项目，优化查询缓存等逻辑，为后续支持hlsl文件做准备，感谢[LtyWK](liutongyunpro@outlook.com)的贡献
+
 #### v1.1.4 `2025.12.28`
 - 函数悬浮提示增加`frac`和`smoothstep`
 - 修复bug：行注释多了额外一层缩进
