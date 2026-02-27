@@ -5,16 +5,16 @@ import {
     documentStructureUtils
 } from './shared.DocumentStructure.js';
 import {
-    SemanticTokenRangeInfo,
+    SemanticTokenInfo,
     SemanticTokens_Script,
     createRangeFromOffsets,
     createSelectionRangeFromMatch
 } from './shared.DocumentSymbolProvider.js';
 
-const SemanticTokens_Pass = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
-    if (rangeInfo.token.isCancellationRequested)
+const SemanticTokens_Pass = (tokenInfo: SemanticTokenInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (tokenInfo.token.isCancellationRequested)
         return;
-    const { document } = rangeInfo;
+    const { document } = tokenInfo;
     const text = bracketInfo.text;
 
     let matchStart = /CGPROGRAM|CGINCLUDE/ig.exec(text);
@@ -33,10 +33,10 @@ const SemanticTokens_Pass = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vs
     }
 
     if (matchStart.length > 0 && matchEnd.length > 0) {
-        const selectionRange = createSelectionRangeFromMatch(document, bracketInfo.start, matchStart.index, matchStart[0].length);
+        const selectionRange = createSelectionRangeFromMatch(tokenInfo, bracketInfo.start, matchStart.index, matchStart[0].length);
 
         const range = createRangeFromOffsets(
-            document,
+            tokenInfo,
             matchStart.index + bracketInfo.start,
             matchEnd.index + matchEnd[0].length + bracketInfo.start
         );
@@ -49,46 +49,44 @@ const SemanticTokens_Pass = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vs
         const bracket = new BracketInfo(document, start, null);
         bracket.set_end(end);
         bracket.children.push(...bracketInfo.children);
-        SemanticTokens_Script(rangeInfo, node, bracket);
+        SemanticTokens_Script(tokenInfo, node, bracket);
     }
 };
 
-const SemanticTokens_SubShader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
-    if (rangeInfo.token.isCancellationRequested)
+const SemanticTokens_SubShader = (tokenInfo: SemanticTokenInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (tokenInfo.token.isCancellationRequested)
         return;
-    const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
     const regex = /(Pass)\s*{/ig;
     while ((match = regex.exec(text))) {
-        const selectionRange = createSelectionRangeFromMatch(document, bracketInfo.start, match.index, match[1].length);
+        const selectionRange = createSelectionRangeFromMatch(tokenInfo, bracketInfo.start, match.index, match[1].length);
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
-        const range = createRangeFromOffsets(document, match.index + bracketInfo.start, bracket.end);
+        const range = createRangeFromOffsets(tokenInfo, match.index + bracketInfo.start, bracket.end);
 
         const node = new vscode.DocumentSymbol(match[1], '', vscode.SymbolKind.Package, range, selectionRange);
         parentSymbol.children.push(node);
 
-        SemanticTokens_Pass(rangeInfo, node, bracket);
+        SemanticTokens_Pass(tokenInfo, node, bracket);
     }
-    SemanticTokens_Pass(rangeInfo, parentSymbol, bracketInfo);
+    SemanticTokens_Pass(tokenInfo, parentSymbol, bracketInfo);
 };
 
-const SemanticTokens_Properties = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
-    if (rangeInfo.token.isCancellationRequested)
+const SemanticTokens_Properties = (tokenInfo: SemanticTokenInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (tokenInfo.token.isCancellationRequested)
         return;
-    const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
     // _MainTex ("Texture", 2D) = "white" {}
     // _Radius ("Radius", Range(0,10)) = 1.0
     const regex = /(\w+)\s*\(".*?"\s*,\s*(.+?)\)\s*(?:=\s*.*)$/mg;
     while ((match = regex.exec(text))) {
-        const selectionRange = createSelectionRangeFromMatch(document, bracketInfo.start, match.index, match[1].length);
+        const selectionRange = createSelectionRangeFromMatch(tokenInfo, bracketInfo.start, match.index, match[1].length);
 
         const range = createRangeFromOffsets(
-            document,
+            tokenInfo,
             match.index + bracketInfo.start,
             match.index + bracketInfo.start + match[0].length
         );
@@ -98,38 +96,37 @@ const SemanticTokens_Properties = (rangeInfo: SemanticTokenRangeInfo, parentSymb
     }
 };
 
-const SemanticTokens_Shader = (rangeInfo: SemanticTokenRangeInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
-    if (rangeInfo.token.isCancellationRequested)
+const SemanticTokens_Shader = (tokenInfo: SemanticTokenInfo, parentSymbol: vscode.DocumentSymbol, bracketInfo: BracketInfo) => {
+    if (tokenInfo.token.isCancellationRequested)
         return;
-    const { document } = rangeInfo;
     const text = bracketInfo.text;
     let match: RegExpExecArray;
     if ((match = /(Properties)\s*{/ig.exec(text))) {
-        const selectionRange = createSelectionRangeFromMatch(document, bracketInfo.start, match.index, match[1].length);
+        const selectionRange = createSelectionRangeFromMatch(tokenInfo, bracketInfo.start, match.index, match[1].length);
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
-        const range = createRangeFromOffsets(document, match.index + bracketInfo.start, bracket.end);
+        const range = createRangeFromOffsets(tokenInfo, match.index + bracketInfo.start, bracket.end);
 
         const node = new vscode.DocumentSymbol('Properties', '', vscode.SymbolKind.Package, range, selectionRange);
         parentSymbol.children.push(node);
 
-        SemanticTokens_Properties(rangeInfo, node, bracket);
+        SemanticTokens_Properties(tokenInfo, node, bracket);
     }
     const regex = /(SubShader)\s*{/ig;
     while ((match = regex.exec(text))) {
-        if (rangeInfo.token.isCancellationRequested)
+        if (tokenInfo.token.isCancellationRequested)
             return;
-        const selectionRange = createSelectionRangeFromMatch(document, bracketInfo.start, match.index, match[1].length);
+        const selectionRange = createSelectionRangeFromMatch(tokenInfo, bracketInfo.start, match.index, match[1].length);
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
-        const range = createRangeFromOffsets(document, match.index + bracketInfo.start, bracket.end);
+        const range = createRangeFromOffsets(tokenInfo, match.index + bracketInfo.start, bracket.end);
 
         const node = new vscode.DocumentSymbol('SubShader', '', vscode.SymbolKind.Package, range, selectionRange);
         parentSymbol.children.push(node);
 
-        SemanticTokens_SubShader(rangeInfo, node, bracket);
+        SemanticTokens_SubShader(tokenInfo, node, bracket);
     }
 };
 
@@ -139,14 +136,15 @@ const SemanticTokens_Root = (document: vscode.TextDocument, bracketInfo: Bracket
     const text = bracketInfo.text;
     let match: RegExpExecArray;
     if ((match = /(Shader)\s*(".*?")\s*{/ig.exec(text))) {
-        const selectionRange = createSelectionRangeFromMatch(document, bracketInfo.start, match.index, match[1].length);
+        const tokenInfo: SemanticTokenInfo = { document, token };
+        const selectionRange = createSelectionRangeFromMatch(tokenInfo, bracketInfo.start, match.index, match[1].length);
 
         const end = match[0].length - 1 + match.index + bracketInfo.start;
         const bracket = bracketInfo.children.find(item => item.start == end);
-        const range = createRangeFromOffsets(document, match.index + bracketInfo.start, bracket.end);
+        const range = createRangeFromOffsets(tokenInfo, match.index + bracketInfo.start, bracket.end);
 
         const rootSymbol = new vscode.DocumentSymbol('Shader', match[2], vscode.SymbolKind.File, range, selectionRange);
-        SemanticTokens_Shader({ document, token, rootSymbol }, rootSymbol, bracket);
+        SemanticTokens_Shader(tokenInfo, rootSymbol, bracket);
         return rootSymbol;
     }
     return null;

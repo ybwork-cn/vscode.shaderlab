@@ -31,7 +31,7 @@ Shader "Custom/TestShader"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                return TestFunction();
+                return TestFunction(aa[0].x);
             }
             ENDCG
         }

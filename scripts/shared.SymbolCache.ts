@@ -71,17 +71,32 @@ const parseIncludes = (document: vscode.TextDocument): vscode.DocumentLink[] => 
     return links;
 };
 
+const expandCBufferTBufferChildren = (symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
+    const isCBufferOrTBuffer = (symbol: vscode.DocumentSymbol): boolean => {
+        return symbol.detail === 'cbuffer' || symbol.detail === 'tbuffer';
+    };
+
+    const result: vscode.DocumentSymbol[] = [];
+    for (const symbol of symbols) {
+        if (isCBufferOrTBuffer(symbol)) {
+            result.push(...symbol.children);
+        }
+        else {
+            result.push(symbol);
+        }
+    }
+    return result;
+};
 
 /**
  * 获取导出的符号
  * - shaderlab 出现在['CGPROGRAM', 'CGINCLUDE', 'HLSLPROGRAM', 'HLSLINCLUDE']中的一级子符号
  * - 其他文件直接使用所有顶级符号
  */
-// TODO: 如果是cbuffer/tbuffer定义，应该导出内部一级子符号而不是cbuffer/tbuffer符号
 const getExportedSymbols = (languageId: string, symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
     // 非 shaderlab 文件，直接返回所有顶级符号
     if (languageId !== 'shaderlab') {
-        return symbols;
+        return expandCBufferTBufferChildren(symbols);
     }
 
     // shaderlab 文件，展开特定组的一级子符号
@@ -91,7 +106,7 @@ const getExportedSymbols = (languageId: string, symbols: vscode.DocumentSymbol[]
     for (const symbol of symbols) {
         // 如果是包含组，则展开其子符号
         if (groups.includes(symbol.name)) {
-            result.push(...symbol.children);
+            result.push(...expandCBufferTBufferChildren(symbol.children));
         }
         // 如果不是组，则继续递归查找
         else {

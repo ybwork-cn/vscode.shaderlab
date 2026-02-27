@@ -22,33 +22,6 @@ class BracketInfo {
 }
 
 /**
- * 判断字符串代表的类型(基本类型、结构体、找不到定义)
- * @param root
- * @param position
- * @param label
- * @returns
- */
-const isType = (root: vscode.DocumentSymbol, position: vscode.Position, label: string): 'baseType' | 'struct' | false => {
-    if (/^((float|fixed|int|half)[2-4]?)|sampler2D$/.test(label))
-        return 'baseType';
-    const stack: vscode.DocumentSymbol[] = [];
-
-    let head = root;
-    while (head != null) {
-        stack.push(head);
-        head = head.children.find(item => item.range.start.compareTo(position) <= 0 && position.compareTo(item.range.end) <= 0);
-    }
-
-    while (stack.length > 0) {
-        const last = stack.pop();
-        const struct = last.children.find(item => item.kind == vscode.SymbolKind.Struct && item.name == label);
-        if (struct != null)
-            return 'struct';
-    }
-    return false;
-};
-
-/**
  * 获取所有成对的括号
  * @param text
  * @param start
@@ -107,7 +80,6 @@ const findAllSymbols = (symbols: readonly vscode.DocumentSymbol[]): readonly vsc
 };
 
 const documentStructureUtils = {
-    isType,
     findAllSymbols,
     getRootBracket(document: vscode.TextDocument, token: vscode.CancellationToken): BracketInfo {
         const text = document.getText();

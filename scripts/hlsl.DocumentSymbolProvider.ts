@@ -5,7 +5,7 @@ import {
     documentStructureUtils
 } from './shared.DocumentStructure.js';
 import {
-    SemanticTokenRangeInfo,
+    SemanticTokenInfo,
     SemanticTokens_Script,
     createRangeFromOffsets,
 } from './shared.DocumentSymbolProvider.js';
@@ -14,7 +14,7 @@ import {
 // TODO: 整理HLSL相关定义，统一到变量定义和结构体定义
 
 const createSymbol = (
-    document: vscode.TextDocument,
+    tokenInfo: SemanticTokenInfo,
     name: string,
     detail: string,
     kind: vscode.SymbolKind,
@@ -23,8 +23,8 @@ const createSymbol = (
     nameOffset: number,
     nameLength: number
 ): vscode.DocumentSymbol => {
-    const range = createRangeFromOffsets(document, startOffset, startOffset + totalLength);
-    const selectionRange = createRangeFromOffsets(document, startOffset + nameOffset, startOffset + nameOffset + nameLength);
+    const range = createRangeFromOffsets(tokenInfo, startOffset, startOffset + totalLength);
+    const selectionRange = createRangeFromOffsets(tokenInfo, startOffset + nameOffset, startOffset + nameOffset + nameLength);
     const symbol = new vscode.DocumentSymbol(name, detail, kind, range, selectionRange);
     symbol.children = [];
     return symbol;
@@ -34,19 +34,18 @@ const createSymbol = (
  * 解析 #define 宏定义
  */
 const SemanticTokens_Defines = (
-    rangeInfo: SemanticTokenRangeInfo,
+    tokenInfo: SemanticTokenInfo,
     parentSymbol: vscode.DocumentSymbol,
     bracketInfo: BracketInfo
 ) => {
-    if (rangeInfo.token.isCancellationRequested)
+    if (tokenInfo.token.isCancellationRequested)
         return;
-    const { document } = rangeInfo;
     const text = bracketInfo.text;
     const regex_define = /^\s*#define\s+(\w+)(?:\(([^)]*)\))?\s*(.*)$/gm;
     let match: RegExpExecArray | null;
 
     while ((match = regex_define.exec(text)) !== null) {
-        if (rangeInfo.token.isCancellationRequested)
+        if (tokenInfo.token.isCancellationRequested)
             return;
         const macroName = match[1];
         const macroParams = match[2] || '';
@@ -61,7 +60,7 @@ const SemanticTokens_Defines = (
 
         const nameOffset = match[0].indexOf(macroName);
         const macroSymbol = createSymbol(
-            document, macroName, detail.trim(), vscode.SymbolKind.Constant,
+            tokenInfo, macroName, detail.trim(), vscode.SymbolKind.Constant,
             bracketInfo.start + match.index, match[0].length, nameOffset, macroName.length
         );
         parentSymbol.children.push(macroSymbol);
@@ -72,26 +71,25 @@ const SemanticTokens_Defines = (
  * 解析 Texture/Sampler 声明
  */
 const SemanticTokens_Textures = (
-    rangeInfo: SemanticTokenRangeInfo,
+    tokenInfo: SemanticTokenInfo,
     parentSymbol: vscode.DocumentSymbol,
     bracketInfo: BracketInfo
 ) => {
-    if (rangeInfo.token.isCancellationRequested)
+    if (tokenInfo.token.isCancellationRequested)
         return;
-    const { document } = rangeInfo;
     const text = bracketInfo.text;
     const regex_texture = /\b(Texture2D|Texture3D|TextureCube|Texture2DArray|SamplerState|SamplerComparisonState)\s*(?:<\s*\w+\s*>)?\s+(\w+)\s*(?::\s*register\s*\([^)]+\))?\s*;/g;
     let match: RegExpExecArray | null;
 
     while ((match = regex_texture.exec(text)) !== null) {
-        if (rangeInfo.token.isCancellationRequested)
+        if (tokenInfo.token.isCancellationRequested)
             return;
         const texType = match[1];
         const texName = match[2];
         const nameOffset = match[0].indexOf(texName);
 
         const texSymbol = createSymbol(
-            document, texName, texType, vscode.SymbolKind.Variable,
+            tokenInfo, texName, texType, vscode.SymbolKind.Variable,
             bracketInfo.start + match.index, match[0].length, nameOffset, texName.length
         );
         parentSymbol.children.push(texSymbol);
@@ -102,19 +100,18 @@ const SemanticTokens_Textures = (
  * 解析 StructuredBuffer 等
  */
 const SemanticTokens_Buffers = (
-    rangeInfo: SemanticTokenRangeInfo,
+    tokenInfo: SemanticTokenInfo,
     parentSymbol: vscode.DocumentSymbol,
     bracketInfo: BracketInfo
 ) => {
-    if (rangeInfo.token.isCancellationRequested)
+    if (tokenInfo.token.isCancellationRequested)
         return;
-    const { document } = rangeInfo;
     const text = bracketInfo.text;
     const regex_buffer = /\b(StructuredBuffer|RWStructuredBuffer|Buffer|RWBuffer|ByteAddressBuffer|RWByteAddressBuffer)\s*<\s*(\w+)\s*>\s+(\w+)\s*(?::\s*register\s*\([^)]+\))?\s*;/g;
     let match: RegExpExecArray | null;
 
     while ((match = regex_buffer.exec(text)) !== null) {
-        if (rangeInfo.token.isCancellationRequested)
+        if (tokenInfo.token.isCancellationRequested)
             return;
         const bufferType = match[1];
         const elementType = match[2];
@@ -122,7 +119,7 @@ const SemanticTokens_Buffers = (
         const nameOffset = match[0].indexOf(bufferName);
 
         const bufferSymbol = createSymbol(
-            document, bufferName, `${bufferType}<${elementType}>`, vscode.SymbolKind.Variable,
+            tokenInfo, bufferName, `${bufferType}<${elementType}>`, vscode.SymbolKind.Variable,
             bracketInfo.start + match.index, match[0].length, nameOffset, bufferName.length
         );
         parentSymbol.children.push(bufferSymbol);
@@ -133,27 +130,27 @@ const SemanticTokens_Buffers = (
  * 解析 HLSL 文档符号
  */
 const SemanticTokens_HLSL = (
-    rangeInfo: SemanticTokenRangeInfo,
+    tokenInfo: SemanticTokenInfo,
     parentSymbol: vscode.DocumentSymbol,
     bracketInfo: BracketInfo
 ) => {
-    if (rangeInfo.token.isCancellationRequested)
+    if (tokenInfo.token.isCancellationRequested)
         return;
-    SemanticTokens_Script(rangeInfo, parentSymbol, bracketInfo);
+    SemanticTokens_Script(tokenInfo, parentSymbol, bracketInfo);
 
-    SemanticTokens_Defines(rangeInfo, parentSymbol, bracketInfo);
-    SemanticTokens_Textures(rangeInfo, parentSymbol, bracketInfo);
-    SemanticTokens_Buffers(rangeInfo, parentSymbol, bracketInfo);
+    SemanticTokens_Defines(tokenInfo, parentSymbol, bracketInfo);
+    SemanticTokens_Textures(tokenInfo, parentSymbol, bracketInfo);
+    SemanticTokens_Buffers(tokenInfo, parentSymbol, bracketInfo);
 };
 
 const SemanticTokens_Root = (document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] => {
     if (token.isCancellationRequested)
         return [];
     const rootBracket = documentStructureUtils.getRootBracket(document, token);
-    const range = createRangeFromOffsets(document, 0, document.getText().length);
+    const tokenInfo: SemanticTokenInfo = { document, token };
+    const range = createRangeFromOffsets(tokenInfo, 0, document.getText().length);
     const rootSymbol = new vscode.DocumentSymbol('HLSL', '', vscode.SymbolKind.File, range, range);
-    const rangeInfo: SemanticTokenRangeInfo = { document, token, rootSymbol };
-    SemanticTokens_HLSL(rangeInfo, rootSymbol, rootBracket);
+    SemanticTokens_HLSL(tokenInfo, rootSymbol, rootBracket);
     return rootSymbol.children;
 };
 
